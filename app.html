@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#090E1A"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="RunFinder"/>
+<meta name="description" content="Encontre corridas de rua perto de você no Brasil. Busca por cidade, raio e data com inteligência artificial."/>
+<meta name="keywords" content="corrida de rua, corridas brasil, maratona, 10k, 5k, eventos esportivos, running"/>
+<meta name="author" content="RunFinder"/>
+<meta property="og:title" content="RunFinder — Corridas de rua perto de você"/>
+<meta property="og:description" content="Encontre corridas de rua em qualquer cidade do Brasil. Busca inteligente por localização, raio e data."/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://runfinder.com.br"/>
+<meta property="og:image" content="https://runfinder.com.br/og-image.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="RunFinder — Corridas de rua perto de você"/>
+<meta name="twitter:description" content="Busca inteligente de corridas de rua no Brasil"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="canonical" href="https://runfinder.com.br"/>
+<title>RunFinder — Corridas de rua perto de você</title>
+
+<!-- Plausible Analytics (privado, sem cookies) -->
+<script defer data-domain="runfinder.com.br" src="https://plausible.io/js/script.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet"/>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#090E1A;
+  --surface:#101827;
+  --surface2:#162035;
+  --border:#1E2D45;
+  --border2:#253650;
+  --text:#E8EFF8;
+  --muted:#6B84A3;
+  --dim:#2E4060;
+  --fire:#FF4500;
+  --fire2:#FF6B35;
+  --green:#00C896;
+  --purple:#8B5CF6;
+  --red:#EF4444;
+  --amber:#FFB800;
+  --blue:#3B82F6;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --nav-h:64px;
+  --hdr-h:60px;
+}
+html,body{
+  height:100%;background:var(--bg);color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;overflow:hidden;
+}
+#app{
+  display:flex;flex-direction:column;height:100%;
+  max-width:430px;margin:0 auto;position:relative;overflow:hidden;
+}
+
+/* ── HEADER ── */
+.hdr{
+  flex-shrink:0;
+  padding:calc(12px + var(--safe-t)) 18px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  height:calc(var(--hdr-h) + var(--safe-t));position:relative;z-index:10;
+}
+.hdr-brand{display:flex;align-items:center;gap:10px;cursor:pointer}
+.hdr-logo{
+  width:34px;height:34px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--fire),var(--fire2));
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.hdr-name{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.5px}
+.hdr-name em{color:var(--fire);font-style:normal}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.hdr-city{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:20px;padding:5px 11px;
+  font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;
+  max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.icon-btn{
+  width:34px;height:34px;border-radius:10px;
+  background:var(--surface2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:16px;position:relative;flex-shrink:0;
+  transition:background .15s;
+}
+.icon-btn:active{background:var(--surface)}
+.notif-dot{
+  position:absolute;top:6px;right:6px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--fire);border:1.5px solid var(--bg);
+}
+
+/* ── SCROLL ── */
+.scroll{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-bottom:calc(var(--nav-h) + var(--safe-b) + 8px);
+  scrollbar-width:none;
+}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ── BOTTOM NAV ── */
+.nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;padding-bottom:var(--safe-b);z-index:200;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;color:var(--dim);
+  font-size:10px;font-weight:700;letter-spacing:.3px;
+  border:none;background:none;padding:9px 0 5px;
+  transition:color .15s;position:relative;font-family:inherit;
+}
+.nav-item.on{color:var(--fire)}
+.nav-item.on::after{
+  content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:28px;height:2px;border-radius:0 0 4px 4px;background:var(--fire);
+}
+.nav-icon{font-size:22px;line-height:1}
+.nav-badge{
+  position:absolute;top:5px;right:calc(50% - 20px);
+  background:var(--fire);color:#fff;font-size:9px;font-weight:800;
+  min-width:16px;height:16px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 3px;border:2px solid var(--surface);
+}
+
+/* ── PAGES ── */
+.page{display:none}.page.on{display:block}
+
+/* ════════════════════════════════
+   BUSCAR PAGE
+════════════════════════════════ */
+.s-wrap{padding:16px 16px 0}
+
+.hero{
+  background:linear-gradient(155deg,#0C1A32 0%,#111E38 55%,#0D1525 100%);
+  border:1px solid var(--border2);border-radius:22px;
+  padding:20px 20px 22px;margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,69,0,.1) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-eye{
+  font-size:11px;font-weight:700;letter-spacing:1.2px;
+  color:var(--fire);text-transform:uppercase;margin-bottom:5px;
+}
+.hero-h{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:21px;font-weight:800;line-height:1.25;margin-bottom:18px;
+}
+.hero-h span{color:var(--fire)}
+
+.flbl{font-size:10px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.inp-row{display:flex;gap:8px;margin-bottom:16px}
+.inp{
+  flex:1;background:rgba(255,255,255,.05);
+  border:1.5px solid var(--border2);border-radius:12px;
+  padding:12px 14px;color:var(--text);font-size:14px;
+  font-family:inherit;outline:none;
+  transition:border-color .2s,background .2s;
+}
+.inp:focus{border-color:var(--fire);background:rgba(255,69,0,.05)}
+.inp::placeholder{color:var(--dim)}
+.loc-btn{
+  width:46px;flex-shrink:0;
+  background:rgba(255,255,255,.05);border:1.5px solid var(--border2);
+  border-radius:12px;cursor:pointer;font-size:19px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.loc-btn:active{border-color:var(--fire);background:rgba(255,69,0,.1)}
+
+.sliders{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.s-lbl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.s-lbl-t{font-size:10px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--muted)}
+.s-val{font-size:13px;font-weight:800;color:var(--fire)}
+input[type=range]{width:100%;accent-color:var(--fire);height:3px;cursor:pointer;display:block;margin:7px 0 3px}
+.s-ends{display:flex;justify-content:space-between;font-size:10px;color:var(--dim)}
+
+.search-btn{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--fire),var(--fire2));
+  border:none;border-radius:13px;color:#fff;font-size:15px;font-weight:800;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .2s,transform .1s;
+  box-shadow:0 4px 24px rgba(255,69,0,.28);
+}
+.search-btn:active{transform:scale(.98);opacity:.9}
+.search-btn:disabled{
+  background:var(--surface2);box-shadow:none;
+  color:var(--muted);cursor:not-allowed;transform:none;
+}
+
+/* ── STRIP ── */
+.sec-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;margin-bottom:10px;
+}
+.sec-t{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700}
+.sec-lnk{font-size:12px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:inherit;padding:0}
+.strip-row{display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;scrollbar-width:none}
+.strip-row::-webkit-scrollbar{display:none}
+.mini{
+  flex-shrink:0;width:148px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:14px;cursor:pointer;
+  transition:border-color .2s,transform .15s;
+}
+.mini:active{transform:scale(.97)}
+.mini-badge{
+  display:inline-block;padding:3px 9px;border-radius:20px;
+  font-size:10px;font-weight:800;margin-bottom:8px;
+}
+.mini-title{font-size:12px;font-weight:700;line-height:1.35;margin-bottom:6px;color:var(--text)}
+.mini-meta{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── CHIPS ── */
+.chips{display:flex;gap:7px;overflow-x:auto;padding:0 16px 2px;scrollbar-width:none;margin-bottom:4px}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex-shrink:0;padding:7px 14px;
+  border-radius:20px;border:1.5px solid var(--border2);
+  background:var(--surface);color:var(--muted);
+  font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:all .15s;font-family:inherit;
+}
+.chip.on{border-color:var(--fire);color:var(--fire);background:rgba(255,69,0,.1)}
+
+/* ── RESULTS HEADER ── */
+.res-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px 8px;
+}
+.res-count{font-size:13px;color:var(--muted)}
+.res-count strong{color:var(--text)}
+.res-sort{font-size:12px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:inherit;padding:0}
+
+/* ── CARDS ── */
+.cards-wrap{padding:0 16px;display:flex;flex-direction:column;gap:12px}
+
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;overflow:hidden;
+  transition:transform .15s,border-color .2s;cursor:pointer;
+}
+.card:active{transform:scale(.99)}
+.c-stripe{height:3px}
+.c-body{padding:16px 18px 18px}
+.c-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11px}
+.c-badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.2px}
+.c-km{font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap;padding-top:3px}
+.c-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:16px;font-weight:700;line-height:1.3;margin-bottom:11px;
+}
+.c-meta{display:flex;flex-direction:column;gap:5px}
+.c-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.c-ico{font-size:13px;width:16px;text-align:center;flex-shrink:0}
+
+/* SIGNATURE: progress bar */
+.c-prog{margin:13px 0 15px}
+.c-prog-lbl{display:flex;justify-content:space-between;margin-bottom:5px;font-size:10px;color:var(--dim);font-weight:600}
+.c-prog-track{height:4px;background:var(--dim);border-radius:4px;overflow:hidden}
+.c-prog-fill{height:100%;border-radius:4px;width:0;transition:width 1.1s cubic-bezier(.4,0,.2,1)}
+
+.c-foot{display:flex;gap:8px}
+.btn-fav{
+  width:40px;height:40px;flex-shrink:0;
+  background:var(--surface2);border:1.5px solid var(--border2);
+  border-radius:11px;cursor:pointer;font-size:17px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.btn-fav.on{border-color:var(--red);background:rgba(239,68,68,.1)}
+.btn-reg{
+  flex:1;padding:10px 14px;border-radius:11px;border:none;
+  font-size:12px;font-weight:800;font-family:inherit;
+  cursor:pointer;text-decoration:none;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  transition:opacity .15s;
+}
+.btn-reg:active{opacity:.8}
+.btn-reg.no-link{background:var(--surface2);color:var(--dim);cursor:default}
+
+/* DETAIL OVERLAY */
+.detail-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.detail-overlay.on{opacity:1;pointer-events:all}
+.detail-sheet{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:24px 24px 0 0;width:100%;max-width:430px;
+  margin:0 auto;padding:24px 20px calc(24px + var(--safe-b));
+  max-height:85vh;overflow-y:auto;
+  transform:translateY(40px);transition:transform .25s;
+  scrollbar-width:none;
+}
+.detail-overlay.on .detail-sheet{transform:translateY(0)}
+.detail-sheet::-webkit-scrollbar{display:none}
+.detail-handle{
+  width:36px;height:4px;border-radius:2px;
+  background:var(--border2);margin:0 auto 20px;
+}
+.detail-dist-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.detail-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:22px;font-weight:800;line-height:1.25;margin-bottom:16px;
+}
+.detail-section{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:16px;padding:16px;margin-bottom:12px;
+}
+.detail-section h4{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.detail-info-row{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:10px}
+.detail-info-row:last-child{margin-bottom:0}
+.detail-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.detail-info-val{color:var(--text);font-weight:500}
+.detail-info-sub{color:var(--muted);font-size:12px}
+.detail-cta{
+  width:100%;padding:15px;margin-top:4px;
+  background:linear-gradient(135deg,var(--fire),var(--fire2));
+  border:none;border-radius:14px;color:#fff;font-size:15px;font-weight:800;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 20px rgba(255,69,0,.3);
+  text-decoration:none;
+}
+.detail-share{
+  width:100%;padding:12px;margin-top:10px;
+  background:var(--surface2);border:1.5px solid var(--border2);
+  border-radius:14px;color:var(--muted);font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+
+/* ════════════════════════════════
+   MAPA PAGE
+════════════════════════════════ */
+.map-wrap{
+  height:calc(100dvh - calc(var(--hdr-h) + var(--safe-t)) - calc(var(--nav-h) + var(--safe-b)));
+  position:relative;overflow:hidden;
+}
+.map-bg{
+  width:100%;height:100%;
+  background:linear-gradient(180deg,#0C1A32 0%,#0D1525 100%);
+  position:relative;
+}
+.map-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(30,45,69,.35) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(30,45,69,.35) 1px,transparent 1px);
+  background-size:36px 36px;
+}
+.map-sbar{
+  position:absolute;top:16px;left:16px;right:16px;z-index:10;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:14px;padding:11px 14px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+.map-sbar input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-size:14px;font-family:inherit;
+}
+.map-sbar input::placeholder{color:var(--dim)}
+.map-pins{position:absolute;inset:0;pointer-events:none}
+.mpin{position:absolute;font-size:22px;animation:mfloat 3s ease-in-out infinite;cursor:pointer;pointer-events:all}
+@keyframes mfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.map-content{
+  position:absolute;inset:0;display:flex;
+  align-items:center;justify-content:center;z-index:5;
+}
+.map-card{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:20px;padding:24px;margin:16px;text-align:center;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.map-icon{font-size:44px;margin-bottom:10px;display:block;animation:bounce 2s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.map-t{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:6px}
+.map-s{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:18px}
+.map-cta{
+  padding:12px 24px;background:linear-gradient(135deg,var(--fire),var(--fire2));
+  border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+}
+.map-badge{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:20px;padding:6px 16px;
+  font-size:12px;color:var(--muted);font-weight:600;
+  white-space:nowrap;z-index:10;
+}
+
+/* ════════════════════════════════
+   FAVORITOS PAGE
+════════════════════════════════ */
+.fav-wrap{padding:20px 16px 0}
+.fav-hdr{margin-bottom:18px}
+.fav-hdr h2{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800}
+.fav-hdr p{color:var(--muted);font-size:13px;margin-top:4px}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.stat-c{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:14px 10px;text-align:center;
+}
+.stat-n{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;color:var(--fire)}
+.stat-l{font-size:10px;color:var(--muted);margin-top:3px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+
+/* ════════════════════════════════
+   ALERTAS PAGE
+════════════════════════════════ */
+.alerts-wrap{padding:20px 16px 0}
+.alerts-hdr{margin-bottom:18px}
+.alerts-hdr h2{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800}
+.alerts-hdr p{color:var(--muted);font-size:13px;margin-top:4px}
+.alert-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:16px;margin-bottom:10px;
+  display:flex;align-items:center;gap:14px;
+}
+.alert-icon{
+  width:42px;height:42px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.alert-text{flex:1}
+.alert-title{font-size:14px;font-weight:700;margin-bottom:3px}
+.alert-sub{font-size:12px;color:var(--muted)}
+.alert-time{font-size:11px;color:var(--dim);margin-top:3px}
+.toggle{
+  width:44px;height:25px;border-radius:13px;background:var(--border2);
+  position:relative;cursor:pointer;transition:background .2s;
+  border:none;flex-shrink:0;
+}
+.toggle.on{background:var(--fire)}
+.toggle::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:19px;height:19px;border-radius:50%;background:#fff;
+  transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.3);
+}
+.toggle.on::after{transform:translateX(19px)}
+.new-alert-btn{
+  width:100%;padding:14px;margin-top:4px;
+  background:var(--surface);border:1.5px dashed var(--border2);
+  border-radius:16px;color:var(--muted);font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:border-color .2s,color .2s;
+}
+.new-alert-btn:active{border-color:var(--fire);color:var(--fire)}
+
+/* ════════════════════════════════
+   STATES
+════════════════════════════════ */
+.loading-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  padding:52px 24px;gap:14px;
+}
+.spinner{
+  width:36px;height:36px;
+  border:3px solid var(--border2);border-top-color:var(--fire);
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-t{font-size:14px;font-weight:600;color:var(--muted)}
+.load-s{font-size:12px;color:var(--dim);text-align:center;max-width:200px;line-height:1.5}
+.load-steps{display:flex;flex-direction:column;gap:6px;margin-top:4px;text-align:left}
+.load-step{
+  font-size:12px;color:var(--dim);
+  display:flex;align-items:center;gap:8px;
+}
+.load-step.done{color:var(--green)}
+.load-step.active{color:var(--muted)}
+
+.empty-wrap{text-align:center;padding:52px 24px}
+.empty-icon{font-size:48px;margin-bottom:14px}
+.empty-t{font-size:16px;font-weight:700;margin-bottom:8px}
+.empty-s{font-size:13px;color:var(--muted);line-height:1.6}
+
+.err-box{
+  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);
+  border-radius:12px;padding:11px 14px;margin-bottom:14px;
+  color:#FCA5A5;font-size:13px;display:none;
+}
+.err-box.on{display:block}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;
+  top:calc(var(--hdr-h) + var(--safe-t) + 10px);
+  left:50%;transform:translateX(-50%) translateY(-8px);
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:12px;padding:10px 18px;
+  font-size:13px;font-weight:600;white-space:nowrap;
+  pointer-events:none;opacity:0;transition:all .25s;z-index:999;
+  max-width:calc(100vw - 40px);text-align:center;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── INSTALL BANNER ── */
+.install-banner{
+  margin:12px 16px 0;
+  background:linear-gradient(135deg,rgba(255,69,0,.15),rgba(255,107,53,.1));
+  border:1px solid rgba(255,69,0,.3);
+  border-radius:16px;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+  animation:fadein .4s ease;display:none;
+}
+@keyframes fadein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.install-banner.on{display:flex}
+.install-txt{flex:1;font-size:13px;color:var(--muted);line-height:1.4}
+.install-txt strong{color:var(--text);display:block;margin-bottom:2px}
+.install-cta{
+  padding:8px 14px;background:linear-gradient(135deg,var(--fire),var(--fire2));
+  border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;
+  cursor:pointer;font-family:inherit;white-space:nowrap;
+}
+.install-x{
+  background:none;border:none;color:var(--dim);cursor:pointer;
+  font-size:16px;padding:0 2px;
+}
+
+/* ── SEP ── */
+.sep{height:1px;background:var(--border);margin:14px 16px}
+
+/* ── OFFLINE BANNER ── */
+.offline-banner{
+  background:rgba(255,184,0,.1);border-bottom:1px solid rgba(255,184,0,.2);
+  padding:8px 16px;font-size:12px;font-weight:600;color:var(--amber);
+  display:none;align-items:center;gap:8px;
+}
+.offline-banner.on{display:flex}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- OFFLINE BANNER -->
+<div class="offline-banner" id="offlineBanner">
+  ⚡ Modo offline — exibindo corridas salvas
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-brand" onclick="showPage('search',document.querySelector('.nav-item'))">
+    <div class="hdr-logo">🏃</div>
+    <div class="hdr-name">Run<em>Finder</em></div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-city" id="hdrCity">📍 Brasil</div>
+    <div class="icon-btn" onclick="handleNotif()" title="Alertas">
+      🔔<div class="notif-dot" id="notifDot"></div>
+    </div>
+  </div>
+</header>
+
+<!-- SCROLL -->
+<div class="scroll" id="mainScroll">
+
+  <!-- ═══ BUSCAR ═══ -->
+  <div class="page on" id="page-search">
+
+    <!-- Install banner -->
+    <div class="install-banner" id="installBanner">
+      <span style="font-size:22px">📲</span>
+      <div class="install-txt">
+        <strong>Instalar RunFinder</strong>
+        Adicione à tela inicial para acesso rápido
+      </div>
+      <button class="install-cta" onclick="installPWA()">Instalar</button>
+      <button class="install-x" onclick="dismissInstall()">✕</button>
+    </div>
+
+    <div class="s-wrap">
+      <div class="hero">
+        <div class="hero-eye">🔥 Busca inteligente</div>
+        <div class="hero-h">Sua próxima<br/><span>corrida de rua</span></div>
+
+        <div class="flbl">Cidade de referência</div>
+        <div class="inp-row">
+          <input class="inp" id="cityInp" type="text" placeholder="Ex: Rio de Janeiro, RJ"
+            onkeydown="if(event.key==='Enter')doSearch()"/>
+          <button class="loc-btn" id="locBtn" onclick="getLocation()" title="Usar localização">📍</button>
+        </div>
+
+        <div class="sliders">
+          <div>
+            <div class="s-lbl">
+              <span class="s-lbl-t">Raio</span>
+              <span class="s-val" id="radVal">50km</span>
+            </div>
+            <input type="range" id="radSlider" min="10" max="300" value="50"
+              oninput="radVal.textContent=this.value+'km'"/>
+            <div class="s-ends"><span>10</span><span>300km</span></div>
+          </div>
+          <div>
+            <div class="s-lbl">
+              <span class="s-lbl-t">Período</span>
+              <span class="s-val" id="monVal">3 meses</span>
+            </div>
+            <input type="range" id="monSlider" min="1" max="12" value="3"
+              oninput="monVal.textContent=this.value+(+this.value===1?' mês':' meses')"/>
+            <div class="s-ends"><span>1</span><span>12 meses</span></div>
+          </div>
+        </div>
+
+        <div class="err-box" id="errBox"></div>
+
+        <button class="search-btn" id="searchBtn" onclick="doSearch()">
+          Buscar corridas
+        </button>
+      </div>
+    </div>
+
+    <!-- UPCOMING STRIP -->
+    <div class="sec-row">
+      <div class="sec-t">⚡ Em destaque</div>
+      <button class="sec-lnk" onclick="loadMock()">Ver todas</button>
+    </div>
+    <div class="strip-row" id="strip"></div>
+    <div class="sep"></div>
+
+    <!-- CHIPS -->
+    <div class="chips" id="chips">
+      <button class="chip on" onclick="filterRaces('todas',this)">Todas</button>
+      <button class="chip" onclick="filterRaces('5K',this)">5K</button>
+      <button class="chip" onclick="filterRaces('10K',this)">10K</button>
+      <button class="chip" onclick="filterRaces('21K',this)">21K</button>
+      <button class="chip" onclick="filterRaces('42K',this)">42K</button>
+      <button class="chip" onclick="filterRaces('Trail',this)">Trail</button>
+      <button class="chip" onclick="filterRaces('Ultra',this)">Ultra</button>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="res-hdr" id="resHdr" style="display:none">
+      <div class="res-count" id="resCount"></div>
+      <button class="res-sort" onclick="showToast('Ordenação em breve!')">Ordenar ↕</button>
+    </div>
+    <div id="cardsArea"></div>
+    <div class="empty-wrap" id="emptyState">
+      <div class="empty-icon">🏅</div>
+      <div class="empty-t">Encontre corridas perto de você</div>
+      <div class="empty-s">Digite uma cidade ou use sua<br/>localização para começar</div>
+    </div>
+
+  </div><!-- /search -->
+
+  <!-- ═══ MAPA ═══ -->
+  <div class="page" id="page-map">
+    <div class="map-wrap">
+      <div class="map-bg">
+        <div class="map-grid"></div>
+        <div class="map-sbar">
+          <span>🔍</span>
+          <input type="text" placeholder="Buscar corrida no mapa..." id="mapInp"/>
+          <span style="color:var(--dim)">🎯</span>
+        </div>
+        <div class="map-pins" id="mapPins"></div>
+        <div class="map-content">
+          <div class="map-card">
+            <span class="map-icon">🗺️</span>
+            <div class="map-t">Mapa interativo</div>
+            <div class="map-s">Visualize corridas em um<br/>raio ao redor de você.<br/>Disponível na v2.0.</div>
+            <button class="map-cta" onclick="navTo('search')">🔍 Buscar corridas</button>
+          </div>
+        </div>
+        <div class="map-badge">📍 7 corridas nesta área</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ FAVORITOS ═══ -->
+  <div class="page" id="page-fav">
+    <div class="fav-wrap">
+      <div class="fav-hdr">
+        <h2>❤️ Favoritos</h2>
+        <p>Corridas salvas para não perder o prazo</p>
+      </div>
+      <div class="stats-grid" id="favStats"></div>
+      <div id="favCards"></div>
+    </div>
+  </div>
+
+  <!-- ═══ ALERTAS ═══ -->
+  <div class="page" id="page-alerts">
+    <div class="alerts-wrap">
+      <div class="alerts-hdr">
+        <h2>🔔 Alertas</h2>
+        <p>Notificações de novas corridas</p>
+      </div>
+      <div id="alertsList"></div>
+      <button class="new-alert-btn" onclick="showToast('➕ Novo alerta em breve!')">
+        ➕ Criar novo alerta
+      </button>
+    </div>
+  </div>
+
+</div><!-- /scroll -->
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="nav-item on" onclick="navTo('search')">
+    <span class="nav-icon">🔍</span>Buscar
+  </button>
+  <button class="nav-item" onclick="navTo('map')">
+    <span class="nav-icon">🗺️</span>Mapa
+  </button>
+  <button class="nav-item" onclick="navTo('fav');renderFavs()">
+    <span class="nav-icon">❤️</span>Favoritos
+    <span class="nav-badge" id="favBadge" style="display:none">0</span>
+  </button>
+  <button class="nav-item" onclick="navTo('alerts');renderAlerts()">
+    <span class="nav-icon">🔔</span>Alertas
+    <span class="nav-badge" id="alertBadge">3</span>
+  </button>
+</nav>
+
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- DETAIL OVERLAY -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
+  <div class="detail-sheet" id="detailSheet">
+    <div class="detail-handle"></div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════
+const MOCK = [
+  {id:1,name:"Meia Maratona Internacional do Rio",date:"2025-08-10",city:"Rio de Janeiro",state:"RJ",dists:["21K"],price:"R$ 149–R$ 229",link:"https://maratonadorio.com.br",org:"Unlimited Sports",km:8,verified:true,desc:"Uma das maiores meias maratonas do Brasil, percorrendo os pontos turísticos mais icônicos do Rio de Janeiro."},
+  {id:2,name:"Corrida de Rua Niterói 10K",date:"2025-07-27",city:"Niterói",state:"RJ",dists:["5K","10K"],price:"R$ 59–R$ 89",link:null,org:"Prefeitura de Niterói",km:0,verified:true,desc:"Corrida tradicional de Niterói com percurso à beira-mar, ideal para corredores iniciantes e intermediários."},
+  {id:3,name:"São Silvestre Clássica",date:"2025-12-31",city:"São Paulo",state:"SP",dists:["15K"],price:"R$ 179–R$ 299",link:"https://saosilvestre.com.br",org:"Unimed",km:420,verified:true,desc:"A corrida de rua mais tradicional do Brasil. Realizada todo ano novo na Avenida Paulista desde 1924."},
+  {id:4,name:"Maratona de São Paulo",date:"2025-12-14",city:"São Paulo",state:"SP",dists:["5K","10K","21K","42K"],price:"R$ 99–R$ 349",link:"https://maratonasp.com.br",org:"Yescom",km:420,verified:true,desc:"Maior maratona da América do Sul, com percurso pelas principais avenidas de São Paulo."},
+  {id:5,name:"Corrida das Dunas Trail Run",date:"2025-09-14",city:"Cabo Frio",state:"RJ",dists:["10K","25K"],price:"R$ 89–R$ 189",link:null,org:"Terra Running",km:150,verified:false,desc:"Trail run pelas dunas da Região dos Lagos. Percurso técnico com vistas incríveis do litoral fluminense."},
+  {id:6,name:"Rio Running Festival",date:"2025-08-24",city:"Rio de Janeiro",state:"RJ",dists:["5K","10K"],price:"R$ 49–R$ 79",link:"https://riorunning.com.br",org:"Rio Running",km:8,verified:true,desc:"Festival de corrida no Aterro do Flamengo com largada ao amanhecer e vista para o Pão de Açúcar."},
+  {id:7,name:"Maratona de Florianópolis",date:"2025-11-09",city:"Florianópolis",state:"SC",dists:["5K","10K","21K","42K"],price:"R$ 89–R$ 279",link:"https://maratonadefloripa.com.br",org:"FME Florianópolis",km:780,verified:true,desc:"Maratona pela orla da Ilha da Magia, com percurso plano e vista para o mar."},
+  {id:8,name:"Corrida Cidade Petrópolis 10K",date:"2025-07-20",city:"Petrópolis",state:"RJ",dists:["5K","10K"],price:"R$ 69–R$ 99",link:null,org:"PMSports",km:65,verified:true,desc:"Corrida nas montanhas da Serra do Mar, cidade histórica e clima agradável durante o inverno."},
+];
+
+const DCFG = {
+  "5K":{c:"#00C896",bg:"rgba(0,200,150,.15)"},
+  "10K":{c:"#FF4500",bg:"rgba(255,69,0,.15)"},
+  "15K":{c:"#FFB800",bg:"rgba(255,184,0,.15)"},
+  "21K":{c:"#8B5CF6",bg:"rgba(139,92,246,.15)"},
+  "25K":{c:"#3B82F6",bg:"rgba(59,130,246,.15)"},
+  "30K":{c:"#F59E0B",bg:"rgba(245,158,11,.15)"},
+  "42K":{c:"#EF4444",bg:"rgba(239,68,68,.15)"},
+  "Trail":{c:"#10B981",bg:"rgba(16,185,129,.15)"},
+  "Ultra":{c:"#EC4899",bg:"rgba(236,72,153,.15)"},
+};
+const DC = d=>{
+  for(const [k,v] of Object.entries(DCFG)){if(d.includes(k))return v}
+  return{c:"#6B84A3",bg:"rgba(107,132,163,.15)"};
+};
+const DPCT = d=>{
+  const m={5:20,10:40,15:55,21:65,25:72,30:80,42:95,50:100,60:100};
+  return m[parseInt(d)]||50;
+};
+const DLBL = d=>parseInt(d)>=50?"Ultra":d;
+
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+let allRaces=[...MOCK];
+let favs=[];
+let deferredPrompt=null;
+let currentCity='';
+let isOnline=navigator.onLine;
+
+try{favs=JSON.parse(localStorage.getItem('rf_favs')||'[]')}catch{}
+
+// ═══════════════════════════════════════
+//  PWA
+// ═══════════════════════════════════════
+if('serviceWorker' in navigator){
+  // SW inline via blob — nunca fica desatualizado
+  const swCode = `
+    const CACHE = 'rf-v4';
+    self.addEventListener('install', e => { self.skipWaiting(); });
+    self.addEventListener('activate', e => {
+      e.waitUntil(caches.keys().then(keys =>
+        Promise.all(keys.map(k => caches.delete(k)))
+      ).then(() => self.clients.claim()));
+    });
+    self.addEventListener('fetch', e => {
+      if(e.request.url.includes('workers.dev') || e.request.url.includes('nominatim') || e.request.url.includes('fonts.goog') || e.request.url.includes('plausible')) return;
+      e.respondWith(
+        fetch(e.request).then(res => {
+          if(res.ok){ const c=res.clone(); caches.open(CACHE).then(ca=>ca.put(e.request,c)); }
+          return res;
+        }).catch(()=>caches.match(e.request))
+      );
+    });
+  `;
+  const blob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).then(reg=>{
+    reg.update();
+  }).catch(()=>{});
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    window.location.reload();
+  });
+}
+
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  setTimeout(()=>document.getElementById('installBanner').classList.add('on'),3000);
+});
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('installBanner').classList.remove('on');
+  showToast('✅ RunFinder instalado com sucesso!');
+  track('pwa_installed');
+});
+
+function installPWA(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(r=>{
+      if(r.outcome==='accepted')showToast('✅ Instalando...');
+      deferredPrompt=null;
+      document.getElementById('installBanner').classList.remove('on');
+    });
+  } else {
+    showToast('Use "Adicionar à tela inicial" no menu do navegador');
+  }
+}
+function dismissInstall(){
+  document.getElementById('installBanner').classList.remove('on');
+  localStorage.setItem('rf_install_dismissed','1');
+}
+
+// ═══════════════════════════════════════
+//  OFFLINE
+// ═══════════════════════════════════════
+function checkOnline(){
+  isOnline=navigator.onLine;
+  document.getElementById('offlineBanner').classList.toggle('on',!isOnline);
+}
+window.addEventListener('online',checkOnline);
+window.addEventListener('offline',checkOnline);
+
+// ═══════════════════════════════════════
+//  ANALYTICS
+// ═══════════════════════════════════════
+function track(event,props={}){
+  if(window.plausible){
+    window.plausible(event,{props});
+  }
+}
+
+// ═══════════════════════════════════════
+//  NAV
+// ═══════════════════════════════════════
+function navTo(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('on'));
+  document.getElementById('page-'+name).classList.add('on');
+  const idx={search:0,map:1,fav:2,alerts:3}[name];
+  document.querySelectorAll('.nav-item')[idx].classList.add('on');
+  document.getElementById('mainScroll').scrollTop=0;
+  track('page_view',{page:name});
+}
+function showPage(n,btn){navTo(n)}
+
+// ═══════════════════════════════════════
+//  GEOLOCATION
+// ═══════════════════════════════════════
+async function getLocation(){
+  const btn=document.getElementById('locBtn');
+  btn.textContent='⏳';btn.disabled=true;
+  try{
+    const pos=await new Promise((res,rej)=>
+      navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000})
+    );
+    const r=await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
+    );
+    const d=await r.json();
+    const city=d.address?.city||d.address?.town||d.address?.municipality||'Brasil';
+    const state=d.address?.state_code||'';
+    const full=state?`${city}, ${state}`:city;
+    document.getElementById('cityInp').value=full;
+    currentCity=full;
+    document.getElementById('hdrCity').textContent='📍 '+city.split(',')[0].substring(0,14);
+    showToast('📍 '+full);
+    track('location_used');
+  }catch(e){
+    showToast('Não foi possível obter localização');
+  }
+  btn.textContent='📍';btn.disabled=false;
+}
+
+// ═══════════════════════════════════════
+//  SEARCH
+// ═══════════════════════════════════════
+async function doSearch(){
+  const city=document.getElementById('cityInp').value.trim();
+  if(!city){showErr('Digite uma cidade para buscar.');return}
+  clearErr();
+  currentCity=city;
+  document.getElementById('hdrCity').textContent='📍 '+city.split(',')[0].substring(0,14);
+
+  const radius=document.getElementById('radSlider').value;
+  const months=document.getElementById('monSlider').value;
+  const btn=document.getElementById('searchBtn');
+  btn.disabled=true;
+  btn.innerHTML='<div class="spinner" style="width:18px;height:18px;border-width:2px"></div> Buscando...';
+
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('resHdr').style.display='none';
+  document.getElementById('cardsArea').innerHTML=`
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="load-t">Pesquisando na internet...</div>
+      <div class="load-steps">
+        <div class="load-step done">✓ Localizando ${city}</div>
+        <div class="load-step active">⟳ Consultando calendários de corrida</div>
+        <div class="load-step">○ Organizando resultados</div>
+      </div>
+    </div>`;
+
+  track('search',{city,radius,months});
+
+  const today=new Date();
+  const end=new Date();end.setMonth(end.getMonth()+parseInt(months));
+  const fmt=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+  try{
+    // ── 1. Buscar no banco Supabase (grátis, instantâneo) ──
+    const today2 = new Date().toISOString().split('T')[0];
+    const endDate2 = new Date(); endDate2.setMonth(endDate2.getMonth()+parseInt(months));
+    const endStr2 = endDate2.toISOString().split('T')[0];
+
+    // Pegar lat/lng do usuário se disponível
+    let userLat=null, userLng=null;
+    try{
+      const pos = await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:2000}));
+      userLat=pos.coords.latitude; userLng=pos.coords.longitude;
+    }catch{}
+
+    const supaUrl = 'https://veqvtfvmovkydpcddwfh.supabase.co/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today2+'&date=lte.'+endStr2+'&order=is_featured.desc,date.asc&limit=100';
+    const supaRes = await fetch(supaUrl, {
+      headers: {
+        'apikey': 'sb_publishable_V9J1wefMmmyGugPMMyikbA_kauQQuOm',
+        'Authorization': 'Bearer sb_publishable_V9J1wefMmmyGugPMMyikbA_kauQQuOm',
+      }
+    });
+    let dbRaces = await supaRes.json();
+
+    // Calcular distância e filtrar por raio
+    function distKm(la1,lo1,la2,lo2){
+      const R=6371,dL=(la2-la1)*Math.PI/180,dG=(lo2-lo1)*Math.PI/180;
+      const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dG/2)**2;
+      return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    }
+
+    // Filtrar por raio se tiver coordenadas
+    if(userLat && userLng){
+      dbRaces = dbRaces.filter(r=>{
+        if(!r.lat||!r.lng) return city.toLowerCase().includes(r.city.toLowerCase())||r.city.toLowerCase().includes(city.split(',')[0].toLowerCase().trim());
+        const d=distKm(userLat,userLng,r.lat,r.lng);
+        r.km=Math.round(d);
+        return d<=parseFloat(radius);
+      });
+    } else {
+      // Sem coordenadas: filtrar por nome da cidade
+      const cityName = city.split(',')[0].toLowerCase().trim();
+      dbRaces = dbRaces.filter(r=>{
+        if(!r.lat||!r.lng) return true;
+        return r.city.toLowerCase().includes(cityName)||cityName.includes(r.city.toLowerCase());
+      });
+    }
+
+    // Formatar para o app
+    allRaces = dbRaces.map(r=>({
+      name:r.name, date:r.date, city:r.city, state:r.state,
+      dists:r.distances||[], price:r.price, link:r.link,
+      org:r.organizer, desc:r.description,
+      km:r.km||null, featured:r.is_featured
+    }));
+    // cache offline
+    try{localStorage.setItem('rf_cache',JSON.stringify({races:allRaces,city,ts:Date.now()}))}catch{}
+    renderCards(allRaces, allRaces.length + ' corrida' + (allRaces.length!==1?'s':'') + ' encontrada' + (allRaces.length!==1?'s':'') + ' no banco');
+    track('search_success',{count:allRaces.length,city});
+  }catch(err){
+    // tentar cache offline
+    try{
+      const cached=JSON.parse(localStorage.getItem('rf_cache')||'null');
+      if(cached&&cached.races){
+        allRaces=cached.races;
+        renderCards(allRaces,'Resultados em cache (offline)');
+        showToast('⚡ Exibindo corridas salvas (sem conexão)');
+      } else {
+        allRaces=[...MOCK];
+        renderCards(allRaces,'Corridas de exemplo');
+        showErr('Sem conexão. Exibindo corridas de exemplo.');
+      }
+    }catch{
+      allRaces=[...MOCK];
+      renderCards(allRaces,'Corridas de exemplo');
+    }
+  }
+  btn.disabled=false;
+  btn.innerHTML='Buscar corridas';
+}
+
+// ═══════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════
+function renderCards(races,summary){
+  const area=document.getElementById('cardsArea');
+  const hdr=document.getElementById('resHdr');
+  const empty=document.getElementById('emptyState');
+  if(!races||!races.length){
+    area.innerHTML='';hdr.style.display='none';empty.style.display='';return;
+  }
+  empty.style.display='none';hdr.style.display='flex';
+  document.getElementById('resCount').innerHTML=
+    `<strong>${races.length}</strong> corrida${races.length!==1?'s':''} encontrada${races.length!==1?'s':''}${summary?` · <span style="color:var(--muted)">${summary}</span>`:''}`;
+  area.innerHTML=`<div class="cards-wrap">${races.map((r,i)=>cardHTML(r,i)).join('')}</div>`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.c-prog-fill').forEach(el=>{
+      el.style.width=el.dataset.w+'%';
+    });
+  }));
+}
+
+function cardHTML(r,i){
+  const isFav=favs.some(f=>f.name===r.name&&f.date===r.date);
+  const mainD=r.dists?.[0]||'10K';
+  const cfg=DC(mainD);
+  const pct=DPCT(mainD);
+  const dt=new Date((r.date||'2025-12-31')+'T12:00:00');
+  const dateStr=dt.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  const badges=(r.dists||[mainD]).map(d=>{
+    const c=DC(d);
+    return`<span class="badge" style="color:${c.c};background:${c.bg}">${DLBL(d)}</span>`;
+  }).join('');
+  return`
+<div class="card" id="c${i}" onclick="openDetail(${i})">
+  <div class="c-stripe" style="background:${cfg.c}"></div>
+  <div class="c-body">
+    <div class="c-top">
+      <div class="c-badges">${badges}${r.verified?`<span class="badge" style="color:var(--green);background:rgba(0,200,150,.1)">✓ Verificado</span>`:''}</div>
+      ${r.km!=null?`<div class="c-km">~${r.km}km</div>`:''}
+    </div>
+    <div class="c-title">${r.name}</div>
+    <div class="c-meta">
+      <div class="c-row"><span class="c-ico">📅</span>${dateStr}</div>
+      <div class="c-row"><span class="c-ico">📍</span>${r.city}${r.state?', '+r.state:''}</div>
+      ${r.price?`<div class="c-row"><span class="c-ico">💰</span>${r.price}</div>`:''}
+      ${r.org?`<div class="c-row"><span class="c-ico">🏢</span>${r.org}</div>`:''}
+    </div>
+    <div class="c-prog">
+      <div class="c-prog-lbl">
+        <span>Distância principal</span>
+        <span style="color:${cfg.c};font-weight:800">${DLBL(mainD)}</span>
+      </div>
+      <div class="c-prog-track">
+        <div class="c-prog-fill" data-w="${pct}" style="background:${cfg.c}"></div>
+      </div>
+    </div>
+    <div class="c-foot" onclick="event.stopPropagation()">
+      <button class="btn-fav ${isFav?'on':''}" id="fv${i}" onclick="toggleFav(${i})">${isFav?'❤️':'🤍'}</button>
+      ${r.link
+        ?`<a class="btn-reg" href="${r.link}" target="_blank" rel="noreferrer"
+            style="background:${cfg.c};color:#fff">Inscrever-se →</a>`
+        :`<button class="btn-reg no-link">Sem inscrição online</button>`}
+    </div>
+  </div>
+</div>`;
+}
+
+// ═══════════════════════════════════════
+//  DETAIL SHEET
+// ═══════════════════════════════════════
+function openDetail(i){
+  const r=allRaces[i];
+  if(!r)return;
+  const mainD=r.dists?.[0]||'10K';
+  const cfg=DC(mainD);
+  const dt=new Date((r.date||'2025-12-31')+'T12:00:00');
+  const dateStr=dt.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const isFav=favs.some(f=>f.name===r.name&&f.date===r.date);
+  const badges=(r.dists||[mainD]).map(d=>{
+    const c=DC(d);return`<span class="badge" style="color:${c.c};background:${c.bg}">${DLBL(d)}</span>`;
+  }).join('');
+
+  document.getElementById('detailContent').innerHTML=`
+    <div class="detail-dist-row">${badges}</div>
+    <div class="detail-title">${r.name}</div>
+    <div class="detail-section">
+      <h4>Informações do evento</h4>
+      <div class="detail-info-row">
+        <span class="detail-icon">📅</span>
+        <div><div class="detail-info-val">${dateStr}</div></div>
+      </div>
+      <div class="detail-info-row">
+        <span class="detail-icon">📍</span>
+        <div><div class="detail-info-val">${r.city}${r.state?', '+r.state:''}</div>
+        ${r.km!=null?`<div class="detail-info-sub">~${r.km}km de distância</div>`:''}
+        </div>
+      </div>
+      ${r.price?`<div class="detail-info-row">
+        <span class="detail-icon">💰</span>
+        <div><div class="detail-info-val">${r.price}</div><div class="detail-info-sub">Valor da inscrição</div></div>
+      </div>`:''}
+      ${r.org?`<div class="detail-info-row">
+        <span class="detail-icon">🏢</span>
+        <div><div class="detail-info-val">${r.org}</div></div>
+      </div>`:''}
+    </div>
+    ${r.desc?`<div class="detail-section">
+      <h4>Sobre a corrida</h4>
+      <p style="font-size:14px;color:var(--muted);line-height:1.6">${r.desc}</p>
+    </div>`:''}
+    <div class="detail-section">
+      <h4>Distâncias disponíveis</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${(r.dists||[mainD]).map(d=>{
+          const c=DC(d);const pct=DPCT(d);
+          return`<div style="flex:1;min-width:80px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px">
+              <span style="color:var(--muted)">${DLBL(d)}</span>
+              <span style="color:${c.c};font-weight:700">${parseInt(d)||d}km</span>
+            </div>
+            <div class="c-prog-track">
+              <div style="height:4px;border-radius:4px;background:${c.c};width:${pct}%;transition:width 1s"></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    ${r.link
+      ?`<a class="detail-cta" href="${r.link}" target="_blank" rel="noreferrer" onclick="track('inscription_click',{race:'${r.name}'})">
+          🏃 Inscrever-se agora
+        </a>`
+      :`<button class="detail-cta" style="opacity:.5;cursor:default">Inscrições não disponíveis online</button>`}
+    <button class="detail-share" onclick="shareRace(${i})">
+      📤 Compartilhar corrida
+    </button>
+    <div style="display:flex;justify-content:center;margin-top:16px">
+      <button class="btn-fav ${isFav?'on':''}" style="width:auto;padding:10px 20px;gap:8px;font-size:14px;font-weight:700"
+        id="detFav" onclick="toggleFavDetail(${i})">
+        ${isFav?'❤️ Salvo':'🤍 Salvar corrida'}
+      </button>
+    </div>
+  `;
+  document.getElementById('detailOverlay').classList.add('on');
+  track('race_detail',{race:r.name});
+}
+
+function closeDetail(e){
+  if(e.target===document.getElementById('detailOverlay')){
+    document.getElementById('detailOverlay').classList.remove('on');
+  }
+}
+
+function toggleFavDetail(i){
+  toggleFav(i);
+  const isFav=favs.some(f=>f.name===allRaces[i]?.name&&f.date===allRaces[i]?.date);
+  const btn=document.getElementById('detFav');
+  if(btn){btn.textContent=isFav?'❤️ Salvo':'🤍 Salvar corrida';btn.classList.toggle('on',isFav)}
+}
+
+function shareRace(i){
+  const r=allRaces[i];if(!r)return;
+  const text=`🏃 ${r.name}\n📅 ${r.date}\n📍 ${r.city}${r.state?', '+r.state:''}\n\nEncontrado no RunFinder!`;
+  if(navigator.share){
+    navigator.share({title:r.name,text,url:r.link||window.location.href})
+      .then(()=>track('race_shared',{race:r.name}));
+  } else {
+    navigator.clipboard.writeText(text).then(()=>showToast('📋 Copiado para a área de transferência!'));
+  }
+}
+
+// ═══════════════════════════════════════
+//  FILTER
+// ═══════════════════════════════════════
+function filterRaces(dist,el){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  const filtered=dist==='todas'
+    ?allRaces
+    :dist==='Ultra'
+      ?allRaces.filter(r=>(r.dists||[]).some(d=>parseInt(d)>=50))
+      :dist==='Trail'
+        ?allRaces.filter(r=>(r.dists||[]).some(d=>d.toLowerCase().includes('trail')||(parseInt(d)>=25&&parseInt(d)<50)))
+        :allRaces.filter(r=>(r.dists||[]).some(d=>d===dist));
+  renderCards(filtered);
+  track('filter',{type:dist});
+}
+
+// ═══════════════════════════════════════
+//  FAVORITES
+// ═══════════════════════════════════════
+function toggleFav(i){
+  const r=allRaces[i];if(!r)return;
+  const idx=favs.findIndex(f=>f.name===r.name&&f.date===r.date);
+  if(idx===-1){
+    favs.push(r);showToast('❤️ Salvo nos favoritos!');
+    const b=document.getElementById('fv'+i);
+    if(b){b.innerHTML='❤️';b.classList.add('on')}
+    track('favorite_add',{race:r.name});
+  } else {
+    favs.splice(idx,1);showToast('Removido dos favoritos');
+    const b=document.getElementById('fv'+i);
+    if(b){b.innerHTML='🤍';b.classList.remove('on')}
+  }
+  try{localStorage.setItem('rf_favs',JSON.stringify(favs))}catch{}
+  updateFavBadge();
+}
+
+function updateFavBadge(){
+  const b=document.getElementById('favBadge');
+  if(favs.length){b.style.display='flex';b.textContent=favs.length}
+  else b.style.display='none';
+}
+
+function renderFavs(){
+  const area=document.getElementById('favCards');
+  const stats=document.getElementById('favStats');
+  updateFavBadge();
+  if(!favs.length){
+    stats.innerHTML='';
+    area.innerHTML=`<div class="empty-wrap">
+      <div class="empty-icon">🤍</div>
+      <div class="empty-t">Nenhuma corrida salva</div>
+      <div class="empty-s">Toque em ❤️ em qualquer corrida<br/>para salvar aqui</div>
+    </div>`;return;
+  }
+  const total=favs.length;
+  const cities=[...new Set(favs.map(f=>f.city))].length;
+  const dists=[...new Set(favs.flatMap(f=>f.dists||[]))].length;
+  stats.innerHTML=`
+    <div class="stat-c"><div class="stat-n">${total}</div><div class="stat-l">Corridas</div></div>
+    <div class="stat-c"><div class="stat-n">${cities}</div><div class="stat-l">Cidades</div></div>
+    <div class="stat-c"><div class="stat-n">${dists}</div><div class="stat-l">Distâncias</div></div>`;
+
+  const saved=[...favs];
+  const tempAll=allRaces;
+  allRaces=saved;
+  area.innerHTML=`<div class="cards-wrap">${saved.map((r,i)=>cardHTML(r,i)).join('')}</div>`;
+  allRaces=tempAll;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.c-prog-fill').forEach(el=>{el.style.width=el.dataset.w+'%'});
+  }));
+}
+
+// ═══════════════════════════════════════
+//  ALERTS
+// ═══════════════════════════════════════
+const SAMPLE_ALERTS=[
+  {icon:'🔥',color:'rgba(255,69,0,.15)',title:'Corridas em Niterói',sub:'Raio 30km · 10K e 21K',time:'Ativo · próxima verificação em 2h',on:true},
+  {icon:'🗺️',color:'rgba(59,130,246,.15)',title:'Maratonas no Brasil',sub:'Qualquer cidade · 42K',time:'Ativo · verificado há 30min',on:true},
+  {icon:'📅',color:'rgba(139,92,246,.15)',title:'Corridas em dezembro',sub:'São Paulo · todas distâncias',time:'Pausado',on:false},
+];
+function renderAlerts(){
+  document.getElementById('alertsList').innerHTML=SAMPLE_ALERTS.map((a,i)=>`
+    <div class="alert-card">
+      <div class="alert-icon" style="background:${a.color}">${a.icon}</div>
+      <div class="alert-text">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-sub">${a.sub}</div>
+        <div class="alert-time">${a.time}</div>
+      </div>
+      <button class="toggle ${a.on?'on':''}" onclick="this.classList.toggle('on');showToast(this.classList.contains('on')?'🔔 Alerta ativado':'🔕 Alerta pausado')"></button>
+    </div>`).join('');
+}
+function handleNotif(){
+  navTo('alerts');renderAlerts();
+  document.querySelectorAll('.nav-item')[3].classList.add('on');
+}
+
+// ═══════════════════════════════════════
+//  STRIP
+// ═══════════════════════════════════════
+function loadMock(){
+  allRaces=[...MOCK];renderCards(allRaces);
+}
+function renderStrip(){
+  const strip=document.getElementById('strip');
+  strip.innerHTML=MOCK.slice(0,6).map((r,i)=>{
+    const d=r.dists[0];const cfg=DC(d);
+    const dt=new Date(r.date+'T12:00:00');
+    const ds=dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+    return`<div class="mini" onclick="allRaces=MOCK;openDetail(${i})">
+      <div class="mini-badge" style="color:${cfg.c};background:${cfg.bg}">${DLBL(d)}</div>
+      <div class="mini-title">${r.name}</div>
+      <div class="mini-meta">📅 ${ds}</div>
+      <div class="mini-meta">📍 ${r.city}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//  MAP PINS
+// ═══════════════════════════════════════
+function renderMapPins(){
+  const wrap=document.getElementById('mapPins');
+  const pos=[[12,22],[65,18],[80,55],[20,65],[50,75],[38,42],[70,80]];
+  const emojis=['🏅','🏃','⏱️','🥇','📍','🏆','🎽'];
+  wrap.innerHTML=pos.map(([l,t],i)=>
+    `<div class="mpin" style="left:${l}%;top:${t}%;animation-delay:${i*.35}s" onclick="showToast('${MOCK[i%MOCK.length].name}')">${emojis[i]}</div>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════
+let tTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  clearTimeout(tTimer);
+  tTimer=setTimeout(()=>t.classList.remove('on'),2800);
+}
+
+// ═══════════════════════════════════════
+//  ERROR
+// ═══════════════════════════════════════
+function showErr(m){const b=document.getElementById('errBox');b.textContent=m;b.classList.add('on')}
+function clearErr(){document.getElementById('errBox').classList.remove('on')}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  // Auto-detectar localização ao carregar
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      try{
+        const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
+        const d=await r.json();
+        const city=d.address?.city||d.address?.town||d.address?.municipality||'';
+        const state=d.address?.state_code||'';
+        if(city){
+          const full=state?`${city}, ${state}`:city;
+          const inp=document.getElementById('cityInp');
+          if(inp&&!inp.value) inp.value=full;
+          currentCity=full;
+          document.getElementById('hdrCity').textContent='📍 '+city.substring(0,14);
+        }
+      }catch{}
+    },()=>{});
+  }
+  renderStrip();
+  loadMock();
+  updateFavBadge();
+  renderMapPins();
+  checkOnline();
+  // show install banner only if not dismissed
+  if(localStorage.getItem('rf_install_dismissed')){
+    // don't show
+  }
+});
+</script>
+</body>
+</html>
