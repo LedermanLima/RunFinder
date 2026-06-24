@@ -953,6 +953,7 @@ async function doSearch(){
   const end=new Date();end.setMonth(end.getMonth()+parseInt(months));
   const fmt=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 
+  try{
   // ── 1. Buscar no banco Supabase (grátis, instantâneo) ──
     const today2 = new Date().toISOString().split('T')[0];
     const endDate2 = new Date(); endDate2.setMonth(endDate2.getMonth()+parseInt(months));
