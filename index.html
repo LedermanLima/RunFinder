@@ -953,66 +953,61 @@ async function doSearch(){
   const end=new Date();end.setMonth(end.getMonth()+parseInt(months));
   const fmt=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 
-  const prompt=`Você é especialista em corridas de rua no Brasil. Busque corridas de rua REAIS que acontecerão em ${city} e em cidades num raio de ATÉ ${radius}km de ${city}, com datas entre ${fmt(today)} e ${fmt(end)} (próximos ${months} meses).
+  // ── 1. Buscar no banco Supabase (grátis, instantâneo) ──
+    const today2 = new Date().toISOString().split('T')[0];
+    const endDate2 = new Date(); endDate2.setMonth(endDate2.getMonth()+parseInt(months));
+    const endStr2 = endDate2.toISOString().split('T')[0];
 
-IMPORTANTE:
-- Inclua SOMENTE corridas dentro do raio de ${radius}km de ${city}
-- Inclua SOMENTE corridas com data entre hoje e ${fmt(end)}
-- Priorize corridas confirmadas e com inscrições abertas
-- Inclua corridas conhecidas da região como Desafio Tupinambá, corridas da NIT2Sports, CPN, corridas municipais, etc
+    // Pegar lat/lng do usuário se disponível
+    let userLat=null, userLng=null;
+    try{
+      const pos = await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:2000}));
+      userLat=pos.coords.latitude; userLng=pos.coords.longitude;
+    }catch{}
 
-Retorne SOMENTE JSON válido sem markdown:
-{"races":[{"name":"Nome oficial da corrida","date":"YYYY-MM-DD","city":"Cidade","state":"UF","dists":["10K"],"price":"R$ 60–R$ 120","link":"URL do site ou inscrição ou null","org":"Organizador","km":distância em km de ${city},"desc":"1 frase descrevendo a corrida"}],"summary":"frase curta resumindo o que foi encontrado"}
-Retorne entre 4 e 10 corridas ordenadas por data.`;
-
-  try{
-    const WORKER_URL = 'https://runfinder-search.lplimamg.workers.dev';
-    const res=await fetch(WORKER_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'user',content:prompt}]})
+    const supaUrl = 'https://veqvtfvmovkydpcddwfh.supabase.co/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today2+'&date=lte.'+endStr2+'&order=is_featured.desc,date.asc&limit=100';
+    const supaRes = await fetch(supaUrl, {
+      headers: {
+        'apikey': 'sb_publishable_V9J1wefMmmyGugPMMyikbA_kauQQuOm',
+        'Authorization': 'Bearer sb_publishable_V9J1wefMmmyGugPMMyikbA_kauQQuOm',
+      }
     });
-    const data=await res.json();
-    // Suporte a respostas com tool_use (web search) e texto direto
-    let text='';
-    for(const b of data.content||[]){
-      if(b.type==='text') text+=b.text;
+    let dbRaces = await supaRes.json();
+
+    // Calcular distância e filtrar por raio
+    function distKm(la1,lo1,la2,lo2){
+      const R=6371,dL=(la2-la1)*Math.PI/180,dG=(lo2-lo1)*Math.PI/180;
+      const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dG/2)**2;
+      return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
     }
-    // Se não achou texto direto, pode estar em formato multi-turn com tool_result
-    if(!text && data.content){
-      // Tentar extrair de stop_reason=end_turn com tool results
-      for(const b of data.content||[]){
-        if(b.type==='tool_result' && Array.isArray(b.content)){
-          for(const c of b.content){if(c.type==='text') text+=c.text;}
-        }
-      }
+
+    // Filtrar por raio se tiver coordenadas
+    if(userLat && userLng){
+      dbRaces = dbRaces.filter(r=>{
+        if(!r.lat||!r.lng) return city.toLowerCase().includes(r.city.toLowerCase())||r.city.toLowerCase().includes(city.split(',')[0].toLowerCase().trim());
+        const d=distKm(userLat,userLng,r.lat,r.lng);
+        r.km=Math.round(d);
+        return d<=parseFloat(radius);
+      });
+    } else {
+      // Sem coordenadas: filtrar por nome da cidade
+      const cityName = city.split(',')[0].toLowerCase().trim();
+      dbRaces = dbRaces.filter(r=>{
+        if(!r.lat||!r.lng) return true;
+        return r.city.toLowerCase().includes(cityName)||cityName.includes(r.city.toLowerCase());
+      });
     }
-    // Fallback: se a resposta precisar de mais turns (web search retorna tool_use)
-    // Fazer segunda chamada com o resultado da busca
-    if(!text || text.trim().length < 10){
-      const needsFollowUp = (data.content||[]).some(b=>b.type==='tool_use');
-      if(needsFollowUp && data.content){
-        const messages2=[
-          {role:'user',content:prompt},
-          {role:'assistant',content:data.content},
-          {role:'user',content:[{type:'tool_result',tool_use_id:data.content.find(b=>b.type==='tool_use')?.id||'',content:'Use os resultados da busca para retornar o JSON de corridas.'}]}
-        ];
-        const res2=await fetch(WORKER_URL,{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({messages:messages2})
-        });
-        const data2=await res2.json();
-        for(const b of data2.content||[]){if(b.type==='text') text+=b.text;}
-      }
-    }
-    if(!text) throw new Error('Resposta vazia');
-    const s=text.indexOf('{'),e=text.lastIndexOf('}');
-    const parsed=JSON.parse(text.slice(s,e+1));
-    allRaces=parsed.races||[];
+
+    // Formatar para o app
+    allRaces = dbRaces.map(r=>({
+      name:r.name, date:r.date, city:r.city, state:r.state,
+      dists:r.distances||[], price:r.price, link:r.link,
+      org:r.organizer, desc:r.description,
+      km:r.km||null, featured:r.is_featured
+    }));
     // cache offline
     try{localStorage.setItem('rf_cache',JSON.stringify({races:allRaces,city,ts:Date.now()}))}catch{}
-    renderCards(allRaces,parsed.summary);
+    renderCards(allRaces, allRaces.length + ' corrida' + (allRaces.length!==1?'s':'') + ' encontrada' + (allRaces.length!==1?'s':'') + ' no banco');
     track('search_success',{count:allRaces.length,city});
   }catch(err){
     // tentar cache offline
