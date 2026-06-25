@@ -735,7 +735,7 @@ try{favs=JSON.parse(localStorage.getItem('rf_favs')||'[]');}catch{}
 
 // PWA
 if('serviceWorker'in navigator){
-  navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});
+  navigator.serviceWorker.register('./sw.js').then(r=>r.update()).catch(()=>{});
   navigator.serviceWorker.addEventListener('controllerchange',()=>window.location.reload());
 }
 window.addEventListener('beforeinstallprompt',e=>{
