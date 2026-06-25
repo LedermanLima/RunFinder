@@ -1,23 +1,20 @@
-"start_url": "./",
-
-"icons": [
-  { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-  { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-],
-
-"shortcuts": [
-  {
-    "name": "Buscar corridas",
-    "short_name": "Buscar",
-    "description": "Buscar corridas perto de mim",
-    "url": "./?tab=search",
-    "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
-  },
-  {
-    "name": "Meus favoritos",
-    "short_name": "Favoritos",
-    "description": "Ver corridas salvas",
-    "url": "./?tab=fav",
-    "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
-  }
-]
+{
+  "name": "RunFinder — Corridas de rua",
+  "short_name": "RunFinder",
+  "description": "Encontre corridas de rua perto de voce no Brasil",
+  "start_url": "/RunFinder/",
+  "scope": "/RunFinder/",
+  "display": "standalone",
+  "background_color": "#090E1A",
+  "theme_color": "#090E1A",
+  "orientation": "portrait",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/LedermanLima/RunFinder/main/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

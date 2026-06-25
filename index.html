@@ -591,12 +591,12 @@ input[type=range]{width:100%;accent-color:var(--fire);height:3px;cursor:pointer;
         <div class="hero-h">Sua proxima<br/><span>corrida de rua</span></div>
         <div class="flbl">Cidade de referencia</div>
         <div class="inp-row">
-          <input class="inp" id="cityInp" type="text" placeholder="Ex: Niteroi, RJ" onkeydown="if(event.key==='Enter')doSearch()"/>
+          <input class="inp" id="cityInp" type="text" placeholder="Ex: Niteroi, RJ" onkeydown="if(event.key===&apos;Enter&apos;)doSearch()"/>
           <button class="loc-btn" id="locBtn" onclick="getLocation()" title="Minha localizacao">&#128205;</button>
         </div>
         <div class="flbl" style="margin-bottom:7px">Nome da corrida (opcional)</div>
         <div class="inp-row" style="margin-bottom:16px">
-          <input class="inp" id="nameInp" type="text" placeholder="Ex: Maratona, Tupinamba, 10K..." onkeydown="if(event.key==='Enter')doSearch()"/>
+          <input class="inp" id="nameInp" type="text" placeholder="Ex: Maratona, Tupinamba, 10K..." onkeydown="if(event.key===&apos;Enter&apos;)doSearch()"/>
         </div>
         <div class="sliders">
           <div>
@@ -735,8 +735,12 @@ try{favs=JSON.parse(localStorage.getItem('rf_favs')||'[]');}catch{}
 
 // PWA
 if('serviceWorker'in navigator){
-  navigator.serviceWorker.register('./sw.js').then(r=>r.update()).catch(()=>{});
-  navigator.serviceWorker.addEventListener('controllerchange',()=>window.location.reload());
+  // Limpar todos SW antigos primeiro
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>r.unregister());
+  });
+  // Registrar novo SW com versão para forçar atualização
+  navigator.serviceWorker.register('./sw.js?v=7').then(r=>r.update()).catch(()=>{});
 }
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();deferredPrompt=e;
@@ -1028,11 +1032,21 @@ function renderFavs(){
 
 // ALERTS
 function renderAlerts(){
-  document.getElementById('alertsList').innerHTML=[
+  var items=[
     {t:'Corridas em Niteroi',s:'Raio 30km',on:true},
     {t:'Maratonas no Brasil',s:'42K',on:true},
-    {t:'Corridas em dezembro',s:'Sao Paulo',on:false},
-  ].map(a=>'<div class="alert-card"><div class="alert-icon" style="font-size:20px;width:42px;height:42px;background:var(--surface2);border-radius:12px;display:flex;align-items:center;justify-content:center">&#128276;</div><div class="alert-text"><div class="alert-title">'+a.t+'</div><div class="alert-sub">'+a.s+'</div></div><button class="toggle'+(a.on?' on':'')+'" onclick="this.classList.toggle('on')"></button></div>').join('');
+    {t:'Corridas em dezembro',s:'Sao Paulo',on:false}
+  ];
+  var html='';
+  for(var i=0;i<items.length;i++){
+    var a=items[i];
+    html+='<div class="alert-card">'
+      +'<div class="alert-icon" style="font-size:20px;width:42px;height:42px;background:var(--surface2);border-radius:12px;display:flex;align-items:center;justify-content:center">&#128276;</div>'
+      +'<div class="alert-text"><div class="alert-title">'+a.t+'</div><div class="alert-sub">'+a.s+'</div></div>'
+      +'<button class="toggle'+(a.on?' on':'')+'" onclick="this.classList.toggle(&quot;on&quot;)"></button>'
+      +'</div>';
+  }
+  document.getElementById('alertsList').innerHTML=html;
 }
 
 // ADMIN
@@ -1040,7 +1054,7 @@ async function renderAdmin(){
   const content=document.getElementById('adminContent');
   if(!adminLoggedIn){
     content.innerHTML='<div class="admin-login"><h3>&#128274; Acesso restrito</h3><p>Digite a senha para acessar</p>'
-      +'<input class="inp" id="adminPassInp" type="password" placeholder="Senha" style="margin-bottom:12px;display:block;width:100%" onkeydown="if(event.key==='Enter')checkPass()"/>'
+      +'<input class="inp" id="adminPassInp" type="password" placeholder="Senha" style="margin-bottom:12px;display:block;width:100%" onkeydown="if(event.key===&apos;Enter&apos;)checkPass()"/>'
       +'<button class="search-btn" onclick="checkPass()">Entrar</button>'
       +'<div id="passErr" style="color:#FCA5A5;font-size:13px;margin-top:10px"></div></div>';
     return;
@@ -1074,14 +1088,19 @@ async function loadAdminRaces(){
 }
 
 function renderAdminList(races){
-  return races.map(r=>'<div class="admin-race-card" id="ar-'+r.id+'">'
-    +'<div class="admin-race-info">'
-    +'<div class="admin-race-name">'+r.name+(r.is_featured?' <span class="featured-badge">&#11088;</span>':'')+'</div>'
-    +'<div class="admin-race-meta">'+r.date+' &bull; '+r.city+(r.state?'/'+r.state:'')+'</div>'
-    +'</div>'
-    +'<button class="admin-feat-btn'+(r.is_featured?' on':'')+'" onclick="toggleFeat(''+r.id+'','+r.is_featured+')">'
-    +(r.is_featured?'&#11088; Destaque':'&#9734; Destacar')
-    +'</button></div>').join('');
+  var html='';
+  for(var i=0;i<races.length;i++){
+    var r=races[i];
+    html+='<div class="admin-race-card" id="ar-'+r.id+'">'
+      +'<div class="admin-race-info">'
+      +'<div class="admin-race-name">'+r.name+(r.is_featured?' <span class="featured-badge">&#11088;</span>':'')+'</div>'
+      +'<div class="admin-race-meta">'+r.date+' &bull; '+r.city+(r.state?'/'+r.state:'')+'</div>'
+      +'</div>'
+      +'<button class="admin-feat-btn'+(r.is_featured?' on':'')+'" onclick="toggleFeat(&quot;'+r.id+'&quot;,'+r.is_featured+')">'
+      +(r.is_featured?'&#11088; Destaque':'&#9734; Destacar')
+      +'</button></div>';
+  }
+  return html;
 }
 
 function filterAdmin(q){
@@ -1144,7 +1163,7 @@ async function renderStrip(){
       const d=r.distances?.[0]||'10K';const cfg=DC(d);
       const dt=new Date(r.date+'T12:00:00');
       const ds=dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
-      return'<div class="mini" onclick="showToast(''+r.name+'')">'
+      return'<div class="mini">'
         +'<div class="mini-badge" style="color:'+cfg.c+';background:'+cfg.bg+'">'+DLBL(d)+'</div>'
         +'<div class="mini-title">'+r.name+'</div>'
         +'<div class="mini-meta">&#128197; '+ds+'</div>'
