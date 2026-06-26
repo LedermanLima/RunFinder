@@ -815,29 +815,40 @@ async function doSearch(){
         if(gd[0]){searchLat=parseFloat(gd[0].lat);searchLng=parseFloat(gd[0].lon);}
       }catch{}
     }
+    // Se busca só por nome sem cidade, desabilitar filtro de raio
+    if(nameQ && !city){searchLat=null;searchLng=null;}
 
-    // Buscar SEMPRE novo do banco — sem cache
-    const url=SB_URL+'/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr+'&order=is_featured.desc,date.asc&limit=200';
+    // Buscar no banco — sem cache
+    // Montar URL com filtro de nome via ilike se fornecido
+    let url=SB_URL+'/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr+'&order=is_featured.desc,date.asc&limit=500';
+    if(nameQ){
+      // Buscar por nome OU cidade com ilike (Supabase suporta ilike)
+      url=SB_URL+'/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr+'&or=(name.ilike.*'+encodeURIComponent(nameQ)+'*,organizer.ilike.*'+encodeURIComponent(nameQ)+'*,city.ilike.*'+encodeURIComponent(nameQ)+'*)&order=is_featured.desc,date.asc&limit=500';
+    }
     const res=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
     let db=await res.json();
 
-    // Filtro por raio
+    // Garantir que é array (Supabase pode retornar erro como objeto)
+    if(!Array.isArray(db)){
+      console.error('Supabase error:', db);
+      db=[];
+    }
+
+    // Filtro por raio geográfico
     if(searchLat&&searchLng){
       db=db.filter(r=>{
-        if(!r.lat||!r.lng)return true;
+        if(!r.lat||!r.lng){
+          // Sem coordenadas: incluir se cidade coincide com busca
+          if(city){
+            const cn=city.split(',')[0].toLowerCase().trim();
+            return (r.city||'').toLowerCase().includes(cn)||cn.includes((r.city||'').toLowerCase());
+          }
+          return true;
+        }
         const d=distKm(searchLat,searchLng,r.lat,r.lng);
         r.km=Math.round(d);
         return d<=parseFloat(radius);
       });
-    }
-
-    // Filtro por nome
-    if(nameQ){
-      db=db.filter(r=>
-        (r.name||'').toLowerCase().includes(nameQ)||
-        (r.organizer||'').toLowerCase().includes(nameQ)||
-        (r.city||'').toLowerCase().includes(nameQ)
-      );
     }
 
     allRaces=db.map(r=>(({
@@ -890,15 +901,21 @@ function applySortFilter(){
   let races=[...filteredRaces];
   const dir=sortDir[currentSort]==='asc'?1:-1;
   races.sort((a,b)=>{
-    if(currentSort==='date')return dir*(new Date(a.date)-new Date(b.date));
-    if(currentSort==='prova'){const da=parseInt(a.dists?.[0]||0)||0,db=parseInt(b.dists?.[0]||0)||0;return dir*(da-db);}
-    if(currentSort==='preco')return dir*(priceMin(a.price)-priceMin(b.price));
-    if(currentSort==='geo')return dir*((a.km??9999)-(b.km??9999));
+    // Destaques sempre primeiro, independente da ordenação
+    if(a.featured && !b.featured) return -1;
+    if(!a.featured && b.featured) return 1;
+    // Aplicar ordenação escolhida
+    if(currentSort==='date') return dir*(new Date(a.date)-new Date(b.date));
+    if(currentSort==='prova'){
+      const da=parseInt((a.dists||['0'])[0])||0;
+      const db=parseInt((b.dists||['0'])[0])||0;
+      return dir*(da-db);
+    }
+    if(currentSort==='preco') return dir*(priceMin(a.price)-priceMin(b.price));
+    if(currentSort==='geo') return dir*((a.km!=null?a.km:9999)-(b.km!=null?b.km:9999));
     return 0;
   });
-  const feat=races.filter(r=>r.featured);
-  const norm=races.filter(r=>!r.featured);
-  renderCards([...feat,...norm]);
+  renderCards(races);
 }
 
 // FILTER
