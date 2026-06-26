@@ -1,0 +1,38 @@
+name: RunFinder Crawler
+
+on:
+  # Roda todo dia às 9h horário de Brasília (12h UTC)
+  schedule:
+    - cron: '0 9 * * *'
+  
+  # Permite rodar manualmente pelo painel do GitHub
+  workflow_dispatch:
+    inputs:
+      region:
+        description: 'Cidade específica para buscar (opcional)'
+        required: false
+        default: ''
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Rodar Crawler
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+        run: node crawler.js
+
+      - name: Resumo
+        if: always()
+        run: echo "Crawler finalizado em $(date '+%d/%m/%Y %H:%M')"
