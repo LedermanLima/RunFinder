@@ -562,6 +562,94 @@ input[type=range]{width:100%;accent-color:var(--fire);height:3px;cursor:pointer;
 .admin-stats {display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .admin-search {background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;width:100%;margin-bottom:12px}
 .admin-search:focus {border-color:var(--fire)}
+
+/* ── PACE CALCULATOR ── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:600;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.modal-overlay.on{opacity:1;pointer-events:all;}
+.modal-sheet{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:24px 24px 0 0;width:100%;max-width:430px;
+  padding:0 20px calc(24px + var(--safe-b));
+  max-height:90vh;overflow-y:auto;scrollbar-width:none;
+  transform:translateY(40px);transition:transform .25s;
+}
+.modal-overlay.on .modal-sheet{transform:translateY(0);}
+.modal-sheet::-webkit-scrollbar{display:none}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:12px auto 20px;cursor:pointer;}
+.modal-title{font-family:Space Grotesk,sans-serif;font-size:20px;font-weight:800;margin-bottom:4px;}
+.modal-sub{color:var(--muted);font-size:13px;margin-bottom:20px;}
+.pace-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.pace-inp-wrap{display:flex;flex-direction:column;gap:6px;}
+.pace-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);}
+.pace-inp{
+  background:var(--surface2);border:1.5px solid var(--border2);
+  border-radius:12px;padding:12px 14px;color:var(--text);
+  font-size:16px;font-family:inherit;outline:none;text-align:center;
+  font-weight:700;
+}
+.pace-inp:focus{border-color:var(--fire);}
+.pace-result-box{
+  background:linear-gradient(135deg,rgba(255,69,0,.15),rgba(255,107,53,.05));
+  border:1px solid rgba(255,69,0,.3);border-radius:16px;
+  padding:18px;margin-bottom:12px;
+}
+.pace-result-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--border);
+}
+.pace-result-row:last-child{border-bottom:none;}
+.pace-result-lbl{font-size:13px;color:var(--muted);}
+.pace-result-val{font-size:16px;font-weight:800;color:var(--fire);}
+.pace-presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.pace-preset{
+  padding:6px 14px;border-radius:20px;
+  border:1.5px solid var(--border2);background:var(--surface2);
+  color:var(--muted);font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .15s;
+}
+.pace-preset:active{border-color:var(--fire);color:var(--fire);}
+
+/* ── COUNTDOWN ── */
+.countdown-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;
+  font-size:11px;font-weight:700;margin-top:6px;
+}
+.countdown-urgent{background:rgba(239,68,68,.15);color:#EF4444;}
+.countdown-soon{background:rgba(255,184,0,.15);color:var(--amber);}
+.countdown-normal{background:rgba(0,200,150,.15);color:var(--green);}
+
+/* ── ESTADOS ── */
+.state-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:16px;padding:14px 12px;text-align:center;
+  cursor:pointer;transition:all .2s;
+}
+.state-card:active{transform:scale(.97);}
+.state-card.has-races{border-color:var(--border2);}
+.state-card.has-races:hover{border-color:var(--fire);}
+.state-uf{font-family:Space Grotesk,sans-serif;font-size:18px;font-weight:800;color:var(--text);}
+.state-name{font-size:10px;color:var(--muted);margin-top:2px;}
+.state-count{
+  display:inline-block;margin-top:6px;
+  padding:2px 8px;border-radius:20px;
+  font-size:11px;font-weight:700;
+}
+.state-count.has{background:rgba(255,69,0,.15);color:var(--fire);}
+.state-count.empty{background:var(--surface2);color:var(--dim);}
+
+/* ── NOTIF INSCRICAO ── */
+.inscricao-banner{
+  background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);
+  border-radius:10px;padding:6px 10px;margin-top:8px;
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:700;color:var(--amber);
+}
 </style>
 </head>
 <body>
@@ -619,6 +707,21 @@ input[type=range]{width:100%;accent-color:var(--fire);height:3px;cursor:pointer;
         <button class="search-btn" id="searchBtn" onclick="doSearch()">🔍 Buscar corridas</button>
       </div>
     </div>
+    <!-- AÇÕES RÁPIDAS -->
+    <div style="display:flex;gap:10px;padding:0 16px;margin-bottom:16px;">
+      <button onclick="openPaceCalc()" style="flex:1;background:var(--surface);border:1.5px solid var(--border2);border-radius:14px;padding:12px;cursor:pointer;font-family:inherit;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--fire)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <span style="font-size:22px">⏱️</span>
+        <span style="font-size:11px;font-weight:700;color:var(--muted)">PACE</span>
+      </button>
+      <button onclick="navTo('fav');renderFavs()" style="flex:1;background:var(--surface);border:1.5px solid var(--border2);border-radius:14px;padding:12px;cursor:pointer;font-family:inherit;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--fire)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <span style="font-size:22px">❤️</span>
+        <span style="font-size:11px;font-weight:700;color:var(--muted)">FAVORITOS</span>
+      </button>
+      <button onclick="navTo('map');renderStates()" style="flex:1;background:var(--surface);border:1.5px solid var(--border2);border-radius:14px;padding:12px;cursor:pointer;font-family:inherit;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--fire)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <span style="font-size:22px">🗺️</span>
+        <span style="font-size:11px;font-weight:700;color:var(--muted)">ESTADOS</span>
+      </button>
+    </div>
     <div class="sec-row"><div class="sec-t">⚡ Em destaque</div><button class="sec-lnk" onclick="loadAll()">Ver todas</button></div>
     <div class="strip-row" id="strip"></div>
     <div style="height:1px;background:var(--border);margin:14px 16px 10px"></div>
@@ -646,22 +749,22 @@ input[type=range]{width:100%;accent-color:var(--fire);height:3px;cursor:pointer;
     </div>
   </div>
 
-  <!-- MAPA -->
+  <!-- ESTADOS -->
   <div class="page" id="page-map">
-    <div class="map-wrap">
-      <div class="map-bg">
-        <div class="map-grid"></div>
-        <div class="map-sbar"><span>🔍</span><input type="text" placeholder="Buscar no mapa..."/><span style="color:var(--dim)">🎯</span></div>
-        <div class="map-pins" id="mapPins"></div>
-        <div class="map-content">
-          <div class="map-card">
-            <span class="map-icon">🗺</span>
-            <div class="map-t">Mapa interativo</div>
-            <div class="map-s">Disponivel na v2.0</div>
-            <button class="map-cta" onclick="navTo('search')">🔍 Buscar corridas</button>
-          </div>
-        </div>
+    <div style="padding:20px 16px 0">
+      <div style="margin-bottom:18px">
+        <h2 style="font-family:Space Grotesk,sans-serif;font-size:22px;font-weight:800">🗺️ Corridas por Estado</h2>
+        <p style="color:var(--muted);font-size:13px;margin-top:4px">Toque em um estado para ver as corridas</p>
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="chip on" id="reg-all" onclick="filterRegion('todas',this)">Todas regiões</button>
+        <button class="chip" onclick="filterRegion('SE',this)">Sudeste</button>
+        <button class="chip" onclick="filterRegion('S',this)">Sul</button>
+        <button class="chip" onclick="filterRegion('NE',this)">Nordeste</button>
+        <button class="chip" onclick="filterRegion('CO',this)">Centro-Oeste</button>
+        <button class="chip" onclick="filterRegion('N',this)">Norte</button>
+      </div>
+      <div id="statesGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
     </div>
   </div>
 
@@ -703,6 +806,60 @@ input[type=range]{width:100%;accent-color:var(--fire);height:3px;cursor:pointer;
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- PACE CALCULATOR MODAL -->
+<div class="modal-overlay" id="paceModal" onclick="if(event.target===this)closePaceCalc()">
+  <div class="modal-sheet">
+    <div class="modal-handle" onclick="closePaceCalc()"></div>
+    <div class="modal-title">⏱️ Calculadora de Pace</div>
+    <div class="modal-sub">Calcule seu ritmo e tempo de prova</div>
+    <div class="pace-presets">
+      <button class="pace-preset" onclick="setPacePreset(5)">5K</button>
+      <button class="pace-preset" onclick="setPacePreset(10)">10K</button>
+      <button class="pace-preset" onclick="setPacePreset(21.1)">Meia</button>
+      <button class="pace-preset" onclick="setPacePreset(42.2)">Maratona</button>
+      <button class="pace-preset" onclick="setPacePreset(15)">15K</button>
+    </div>
+    <div class="pace-grid">
+      <div class="pace-inp-wrap">
+        <span class="pace-lbl">Distância (km)</span>
+        <input class="pace-inp" id="paceKm" type="number" value="10" step="0.1" min="0.1" oninput="calcPace()"/>
+      </div>
+      <div class="pace-inp-wrap">
+        <span class="pace-lbl">Horas</span>
+        <input class="pace-inp" id="paceH" type="number" value="0" min="0" max="23" oninput="calcPace()"/>
+      </div>
+      <div class="pace-inp-wrap">
+        <span class="pace-lbl">Minutos</span>
+        <input class="pace-inp" id="paceM" type="number" value="50" min="0" max="59" oninput="calcPace()"/>
+      </div>
+      <div class="pace-inp-wrap">
+        <span class="pace-lbl">Segundos</span>
+        <input class="pace-inp" id="paceS" type="number" value="0" min="0" max="59" oninput="calcPace()"/>
+      </div>
+    </div>
+    <div class="pace-result-box" id="paceResult">
+      <div class="pace-result-row">
+        <span class="pace-result-lbl">Pace (min/km)</span>
+        <span class="pace-result-val" id="resPace">–</span>
+      </div>
+      <div class="pace-result-row">
+        <span class="pace-result-lbl">Velocidade média</span>
+        <span class="pace-result-val" id="resVel">–</span>
+      </div>
+      <div class="pace-result-row">
+        <span class="pace-result-lbl">Tempo total</span>
+        <span class="pace-result-val" id="resTotal">–</span>
+      </div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Com esse pace, em outras distâncias:</div>
+      <div id="paceOthers" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <button onclick="closePaceCalc()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--fire),var(--fire2,#FF6B35));border:none;border-radius:13px;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:4px;">Fechar</button>
+  </div>
+</div>
+
 <div class="detail-overlay" id="detailOverlay">
   <div class="detail-sheet" id="detailSheet">
     <div class="detail-handle" id="detailHandle" onclick="closeDetail()" title="Fechar"></div>
@@ -958,6 +1115,9 @@ function cardHTML(r,i){
   const ds=dt.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
   const badges=(r.dists||[mainD]).map(d=>{const c=DC(d);return'<span class="badge" style="color:'+c.c+';background:'+c.bg+'">'+DLBL(d)+'</span>';}).join('');
   const featBadge=r.featured?'<span class="featured-badge">⭐ Destaque</span>':'';
+  const countdown=countdownBadge(r.date||'2026-12-31');
+  const days=getDaysTo(r.date||'2026-12-31');
+  const inscBanner=(days<=30&&days>=0&&r.price)?inscricaoBanner(r.price):'';
   return'<div class="card" id="c'+i+'" onclick="openDetail('+i+')">'
     +'<div class="c-stripe" style="background:'+cfg.c+'"></div>'
     +'<div class="c-body">'
@@ -969,14 +1129,17 @@ function cardHTML(r,i){
     +(r.price?'<div class="c-row"><span class="c-ico">💰</span>'+r.price+'</div>':'')
     +(r.org?'<div class="c-row"><span class="c-ico">🏠</span>'+r.org+'</div>':'')
     +'</div>'
+    +countdown
+    +inscBanner
     +'<div class="c-prog"><div class="c-prog-lbl"><span>Distancia principal</span><span style="color:'+cfg.c+';font-weight:800">'+DLBL(mainD)+'</span></div>'
     +'<div class="c-prog-track"><div class="c-prog-fill" data-w="'+pct+'" style="background:'+cfg.c+'"></div></div></div>'
     +'<div class="c-foot" onclick="event.stopPropagation()">'
-    +'<button class="btn-fav'+(isFav?' on':'')+'" id="fv'+i+'" onclick="toggleFav('+i+')">'+(isFav?'❤':'🤍')+'</button>'
+    +'<button class="btn-fav'+(isFav?' on':'')+'" id="fv'+i+'" onclick="toggleFav('+i+')">'+(isFav?'❤️':'🤍')+'</button>'
     +(r.link?'<a class="btn-reg" href="'+r.link+'" target="_blank" rel="noreferrer" style="background:'+cfg.c+';color:#fff">Inscrever-se →</a>'
       :'<button class="btn-reg no-link">Sem inscricao online</button>')
     +'</div></div></div>';
 }
+
 
 // DETAIL — fix: overlay fecha so ao clicar fora do sheet
 function openDetail(i){
@@ -1209,7 +1372,206 @@ function showToast(msg){const t=document.getElementById('toast');t.innerHTML=msg
 function showErr(m){const b=document.getElementById('errBox');b.textContent=m;b.classList.add('on');}
 function clearErr(){document.getElementById('errBox').classList.remove('on');}
 
+// ════════════════════════════════════
+// PACE CALCULATOR
+// ════════════════════════════════════
+function openPaceCalc(){
+  document.getElementById('paceModal').classList.add('on');
+  calcPace();
+}
+function closePaceCalc(){
+  document.getElementById('paceModal').classList.remove('on');
+}
+function setPacePreset(km){
+  document.getElementById('paceKm').value=km;
+  calcPace();
+}
+function calcPace(){
+  const km=parseFloat(document.getElementById('paceKm').value)||0;
+  const h=parseInt(document.getElementById('paceH').value)||0;
+  const m=parseInt(document.getElementById('paceM').value)||0;
+  const s=parseInt(document.getElementById('paceS').value)||0;
+  const totalSec=h*3600+m*60+s;
+  if(!km||!totalSec){
+    document.getElementById('resPace').textContent='–';
+    document.getElementById('resVel').textContent='–';
+    document.getElementById('resTotal').textContent='–';
+    document.getElementById('paceOthers').innerHTML='';
+    return;
+  }
+  const paceSec=totalSec/km;
+  const paceMin=Math.floor(paceSec/60);
+  const paceSec2=Math.round(paceSec%60);
+  const vel=(km/(totalSec/3600)).toFixed(1);
+  const fmtTime=(sec)=>{
+    const hh=Math.floor(sec/3600);
+    const mm=Math.floor((sec%3600)/60);
+    const ss=Math.round(sec%60);
+    return (hh?hh+'h ':'')+(mm?mm+'min ':'')+(ss?ss+'s':'');
+  };
+  document.getElementById('resPace').textContent=paceMin+String.fromCharCode(39)+String(paceSec2).padStart(2,'0')+String.fromCharCode(34);
+  document.getElementById('resVel').textContent=vel+' km/h';
+  document.getElementById('resTotal').textContent=fmtTime(totalSec);
+  // Outras distâncias
+  const dists=[{d:5,l:'5K'},{d:10,l:'10K'},{d:15,l:'15K'},{d:21.1,l:'Meia Maratona'},{d:42.2,l:'Maratona'}];
+  document.getElementById('paceOthers').innerHTML=dists.filter(x=>Math.abs(x.d-km)>0.5).map(x=>{
+    const t=paceSec*x.d;
+    return'<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">'
+      +'<span style="color:var(--muted)">'+x.l+'</span>'
+      +'<span style="font-weight:700;color:var(--text)">'+fmtTime(t)+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+// ════════════════════════════════════
+// COUNTDOWN - dias para corrida
+// ════════════════════════════════════
+function getDaysTo(dateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  const now=new Date();
+  now.setHours(0,0,0,0);
+  return Math.ceil((d-now)/(1000*60*60*24));
+}
+function countdownBadge(dateStr){
+  const days=getDaysTo(dateStr);
+  if(days<0)return'';
+  if(days===0)return'<div class="countdown-badge countdown-urgent">🏁 Hoje!</div>';
+  if(days<=7)return'<div class="countdown-badge countdown-urgent">⚡ '+days+' dias</div>';
+  if(days<=30)return'<div class="countdown-badge countdown-soon">📅 '+days+' dias</div>';
+  return'<div class="countdown-badge countdown-normal">🗓️ '+days+' dias</div>';
+}
+function inscricaoBanner(price){
+  if(!price)return'';
+  return'<div class="inscricao-banner">🔔 Inscrições abertas · '+price+'</div>';
+}
+
+// ════════════════════════════════════
+// COMPARTILHAR — gera card para redes sociais
+// ════════════════════════════════════
+function shareRace(i){
+  const r=allRaces[i];if(!r)return;
+
+  // Tentar Web Share API primeiro (mobile)
+  const text='🏃 '+r.name
+    +'\n📅 '+new Date(r.date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
+    +'\n📍 '+r.city+(r.state?', '+r.state:'')
+    +(r.price?'\n💰 '+r.price:'')
+    +'\n\nEncontrei no RunFinder 👉 https://ledermanlima.github.io/RunFinder/';
+
+  if(navigator.share){
+    navigator.share({
+      title:'🏃 '+r.name,
+      text:text,
+      url:r.link||'https://ledermanlima.github.io/RunFinder/'
+    }).then(()=>showToast('✅ Compartilhado!')).catch(()=>{});
+    return;
+  }
+  // Fallback: copiar texto
+  navigator.clipboard.writeText(text).then(()=>showToast('📋 Texto copiado! Cole no WhatsApp ou Instagram.'));
+}
+
+// ════════════════════════════════════
+// ESTADOS — corridas por estado
+// ════════════════════════════════════
+const STATES = [
+  {uf:'AC',name:'Acre',region:'N'},
+  {uf:'AL',name:'Alagoas',region:'NE'},
+  {uf:'AP',name:'Amapá',region:'N'},
+  {uf:'AM',name:'Amazonas',region:'N'},
+  {uf:'BA',name:'Bahia',region:'NE'},
+  {uf:'CE',name:'Ceará',region:'NE'},
+  {uf:'DF',name:'Distrito Federal',region:'CO'},
+  {uf:'ES',name:'Espírito Santo',region:'SE'},
+  {uf:'GO',name:'Goiás',region:'CO'},
+  {uf:'MA',name:'Maranhão',region:'NE'},
+  {uf:'MT',name:'Mato Grosso',region:'CO'},
+  {uf:'MS',name:'Mato Grosso do Sul',region:'CO'},
+  {uf:'MG',name:'Minas Gerais',region:'SE'},
+  {uf:'PA',name:'Pará',region:'N'},
+  {uf:'PB',name:'Paraíba',region:'NE'},
+  {uf:'PR',name:'Paraná',region:'S'},
+  {uf:'PE',name:'Pernambuco',region:'NE'},
+  {uf:'PI',name:'Piauí',region:'NE'},
+  {uf:'RJ',name:'Rio de Janeiro',region:'SE'},
+  {uf:'RN',name:'Rio Grande do Norte',region:'NE'},
+  {uf:'RS',name:'Rio Grande do Sul',region:'S'},
+  {uf:'RO',name:'Rondônia',region:'N'},
+  {uf:'RR',name:'Roraima',region:'N'},
+  {uf:'SC',name:'Santa Catarina',region:'S'},
+  {uf:'SP',name:'São Paulo',region:'SE'},
+  {uf:'SE',name:'Sergipe',region:'NE'},
+  {uf:'TO',name:'Tocantins',region:'N'},
+];
+
+let stateRaces={};
+let currentRegion='todas';
+
+async function renderStates(){
+  const grid=document.getElementById('statesGrid');
+  if(!grid)return;
+  grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px 0"><div class="spinner"></div><div style="color:var(--muted);font-size:13px;margin-top:8px">Carregando...</div></div>';
+
+  try{
+    const today=new Date().toISOString().split('T')[0];
+    const end=new Date();end.setMonth(end.getMonth()+6);
+    const endStr=end.toISOString().split('T')[0];
+    const res=await fetch(SB_URL+'/rest/v1/races?select=state&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr,{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    const races=await res.json();
+    // Contar por estado
+    stateRaces={};
+    (Array.isArray(races)?races:[]).forEach(r=>{
+      if(r.state)stateRaces[r.state]=(stateRaces[r.state]||0)+1;
+    });
+    renderStateGrid(currentRegion);
+  }catch(e){
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted)">Erro ao carregar estados</div>';
+  }
+}
+
+function renderStateGrid(region){
+  const grid=document.getElementById('statesGrid');
+  if(!grid)return;
+  const filtered=region==='todas'?STATES:STATES.filter(s=>s.region===region);
+  grid.innerHTML=filtered.map(s=>{
+    const count=stateRaces[s.uf]||0;
+    const uf=s.uf, name=s.name;
+    return'<div class="state-card'+(count?' has-races':'')+'" data-uf="'+uf+'" data-name="'+name+'">'
+      +'<div class="state-uf">'+uf+'</div>'
+      +'<div class="state-name">'+name+'</div>'
+      +'<div class="state-count '+(count?'has':'empty')+'">'+(count?count+' corrida'+(count>1?'s':''):'nenhuma')+'</div>'
+      +'</div>';
+  }).join('');
+  // Adicionar event listeners após render
+  grid.querySelectorAll('.state-card').forEach(function(el){
+    el.addEventListener('click',function(){
+      searchByState(this.dataset.uf, this.dataset.name);
+    });
+  });
+}
+
+function filterRegion(region,btn){
+  document.querySelectorAll('#page-map .chip').forEach(c=>c.classList.remove('on'));
+  btn.classList.add('on');
+  currentRegion=region;
+  renderStateGrid(region);
+}
+
+async function searchByState(uf,name){
+  // Navegar para busca e filtrar por estado
+  navTo('search');
+  document.getElementById('cityInp').value=name+', '+uf;
+  document.getElementById('radSlider').value=300;
+  document.getElementById('radVal').textContent='300km';
+  document.getElementById('monSlider').value=6;
+  document.getElementById('monVal').textContent='6 meses';
+  await doSearch();
+}
+
+// ════════════════════════════════════
 // INIT
+// ════════════════════════════════════
 window.addEventListener('DOMContentLoaded',()=>{
   renderStrip();
   renderMapPins();
