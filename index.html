@@ -952,12 +952,19 @@ async function doSearch(){
   if(!city&&!nameQ){showErr('Digite uma cidade ou nome de corrida.');return;}
   clearErr();
 
+  // Limpar resultados anteriores imediatamente
+  allRaces=[];
+  filteredRaces=[];
+
   const radius=document.getElementById('radSlider').value;
   const months=document.getElementById('monSlider').value;
   const btn=document.getElementById('searchBtn');
   btn.disabled=true;
   btn.innerHTML='<div style="width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;flex-shrink:0"></div>Buscando...';
 
+  // Limpar resultados anteriores imediatamente
+  allRaces=[];
+  filteredRaces=[];
   document.getElementById('emptyState').style.display='none';
   document.getElementById('resHdr').style.display='none';
   document.getElementById('sortBar').style.display='none';
@@ -1559,13 +1566,27 @@ function filterRegion(region,btn){
 }
 
 async function searchByState(uf,name){
-  // Navegar para busca e filtrar por estado
+  // Limpar estado anterior ANTES de navegar
+  allRaces=[];
+  filteredRaces=[];
+  document.getElementById('cardsArea').innerHTML='';
+  document.getElementById('resHdr').style.display='none';
+  document.getElementById('sortBar').style.display='none';
+  document.getElementById('emptyState').style.display='';
+
+  // Navegar para busca
   navTo('search');
+
+  // Preencher campos
   document.getElementById('cityInp').value=name+', '+uf;
+  document.getElementById('nameInp').value='';
   document.getElementById('radSlider').value=300;
   document.getElementById('radVal').textContent='300km';
   document.getElementById('monSlider').value=6;
   document.getElementById('monVal').textContent='6 meses';
+
+  // Pequeno delay para garantir que o DOM atualizou
+  await new Promise(r=>setTimeout(r,100));
   await doSearch();
 }
 
