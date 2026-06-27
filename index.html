@@ -992,7 +992,8 @@ async function doSearch(){
     let url=SB_URL+'/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr+'&order=is_featured.desc,date.asc&limit=500';
     if(nameQ){
       // Buscar por nome OU cidade com ilike (Supabase suporta ilike)
-      url=SB_URL+'/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr+'&or=(name.ilike.*'+encodeURIComponent(nameQ)+'*,organizer.ilike.*'+encodeURIComponent(nameQ)+'*,city.ilike.*'+encodeURIComponent(nameQ)+'*)&order=is_featured.desc,date.asc&limit=500';
+      const nq=encodeURIComponent(nameQ);
+      url=SB_URL+'/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr+'&or=(name.ilike.*'+nq+'*,organizer.ilike.*'+nq+'*,city.ilike.*'+nq+'*)&order=is_featured.desc,date.asc&limit=500';
     }
     const res=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
     let db=await res.json();
@@ -1094,7 +1095,10 @@ function filterRaces(dist,el){
   currentFilter=dist;
   if(dist==='todas')filteredRaces=[...allRaces];
   else if(dist==='Ultra')filteredRaces=allRaces.filter(r=>(r.dists||[]).some(d=>parseInt(d)>=50));
-  else if(dist==='Trail')filteredRaces=allRaces.filter(r=>(r.dists||[]).some(d=>d.toLowerCase().includes('trail')||parseInt(d)>=25&&parseInt(d)<50));
+  else if(dist==='Trail')filteredRaces=allRaces.filter(r=>
+    (r.dists||[]).some(d=>d.toLowerCase().includes('trail')||parseInt(d)>=25&&parseInt(d)<50)||
+    (r.name||'').toLowerCase().includes('trail')
+  );
   else filteredRaces=allRaces.filter(r=>(r.dists||[]).some(d=>d===dist));
   applySortFilter();
 }
@@ -1351,26 +1355,41 @@ function renderMapPins(){
 }
 
 // STRIP
+let stripRaces=[];
 async function renderStrip(){
   try{
     const today=new Date().toISOString().split('T')[0];
-    const end=new Date();end.setMonth(end.getMonth()+6);
-    const res=await fetch(SB_URL+'/rest/v1/races?select=name,date,city,distances&is_active=eq.true&is_featured=eq.true&date=gte.'+today+'&order=date.asc&limit=8',{
+    const res=await fetch(SB_URL+'/rest/v1/races?select=*&is_active=eq.true&is_featured=eq.true&date=gte.'+today+'&order=date.asc&limit=8',{
       headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
     });
     const races=await res.json();
-    if(!races||!races.length)return;
-    document.getElementById('strip').innerHTML=races.map(r=>{
-      const d=r.distances?.[0]||'10K';const cfg=DC(d);
+    if(!Array.isArray(races)||!races.length)return;
+    stripRaces=races.map(r=>({
+      id:r.id,name:r.name,date:r.date,city:r.city,state:r.state,
+      dists:r.distances||[],price:r.price,link:r.link,
+      org:r.organizer,desc:r.description,
+      km:null,featured:r.is_featured,lat:r.lat,lng:r.lng
+    }));
+    document.getElementById('strip').innerHTML=stripRaces.map((r,i)=>{
+      const d=r.dists?.[0]||'10K';const cfg=DC(d);
       const dt=new Date(r.date+'T12:00:00');
       const ds=dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
-      return'<div class="mini">'
+      return'<div class="mini" data-strip="'+i+'">'
         +'<div class="mini-badge" style="color:'+cfg.c+';background:'+cfg.bg+'">'+DLBL(d)+'</div>'
         +'<div class="mini-title">'+r.name+'</div>'
         +'<div class="mini-meta">📅 '+ds+'</div>'
         +'<div class="mini-meta">📍 '+r.city+'</div></div>';
     }).join('');
-  }catch{}
+    // Adicionar event listeners nos mini cards
+    document.getElementById('strip').querySelectorAll('.mini[data-strip]').forEach(function(el){
+      el.addEventListener('click',function(){
+        const idx=parseInt(this.dataset.strip);
+        // Colocar a corrida em allRaces e abrir detail
+        allRaces=stripRaces;
+        openDetail(idx);
+      });
+    });
+  }catch(e){console.warn('renderStrip error:',e);}
 }
 
 // TOAST & ERROR
