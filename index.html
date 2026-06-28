@@ -885,7 +885,16 @@ const DCFG = {
 function DC(d){for(const[k,v]of Object.entries(DCFG)){if(d&&d.includes(k))return v;}return{c:'#6B84A3',bg:'rgba(107,132,163,.15)'};}
 function DPCT(d){const m={5:20,10:40,15:55,21:65,25:72,30:80,42:95,52:100};return m[parseInt(d)]||50;}
 function DLBL(d){return parseInt(d)>=50?'Ultra':d;}
-function distKm(la1,lo1,la2,lo2){const R=6371,dL=(la2-la1)*Math.PI/180,dG=(lo2-lo1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dG/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function distKmStraight(la1,lo1,la2,lo2){const R=6371,dL=(la2-la1)*Math.PI/180,dG=(lo2-lo1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dG/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+async function distKmRoad(la1,lo1,la2,lo2){
+  try{
+    const r=await fetch('https://router.project-osrm.org/route/v1/driving/'+lo1+','+la1+';'+lo2+','+la2+'?overview=false');
+    const d=await r.json();
+    if(d.routes&&d.routes[0])return d.routes[0].distance/1000;
+  }catch{}
+  return distKmStraight(la1,lo1,la2,lo2)*1.35;
+}
+function distKm(la1,lo1,la2,lo2){return distKmStraight(la1,lo1,la2,lo2);}
 function priceMin(p){return parseInt((p||'0').replace(/[^0-9]/,''))||0;}
 
 let allRaces=[], filteredRaces=[], favs=[], deferredPrompt=null;
@@ -988,13 +997,8 @@ async function doSearch(){
     if(nameQ && !city){searchLat=null;searchLng=null;}
 
     // Buscar no banco — sem cache
-    // Montar URL com filtro de nome via ilike se fornecido
-    let url=SB_URL+'/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr+'&order=is_featured.desc,date.asc&limit=500';
-    if(nameQ){
-      // Buscar por nome OU cidade com ilike (Supabase suporta ilike)
-      const nq=encodeURIComponent(nameQ);
-      url=SB_URL+'/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr+'&or=(name.ilike.*'+nq+'*,organizer.ilike.*'+nq+'*,city.ilike.*'+nq+'*)&order=is_featured.desc,date.asc&limit=500';
-    }
+    // Buscar todos do período (filtro por nome é feito localmente para suportar acentos)
+    const url=SB_URL+'/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr+'&order=is_featured.desc,date.asc&limit=500';
     const res=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
     let db=await res.json();
 
@@ -1004,29 +1008,47 @@ async function doSearch(){
       db=[];
     }
 
-    // Filtro por raio geográfico
+    // Filtro por raio — usa OSRM para distância por vias reais
     if(searchLat&&searchLng){
-      db=db.filter(r=>{
+      const maxKm=parseFloat(radius);
+      // Primeiro filtro rápido: linha reta * 0.6 para descartar claramente fora
+      const preFilt=db.filter(r=>{
         if(!r.lat||!r.lng){
-          // Sem coordenadas: incluir se cidade coincide com busca
-          if(city){
-            const cn=city.split(',')[0].toLowerCase().trim();
-            return (r.city||'').toLowerCase().includes(cn)||cn.includes((r.city||'').toLowerCase());
-          }
+          if(city){const cn=city.split(',')[0].toLowerCase().trim();return(r.city||'').toLowerCase().includes(cn);}
           return true;
         }
-        const d=distKm(searchLat,searchLng,r.lat,r.lng);
-        r.km=Math.round(d);
-        return d<=parseFloat(radius);
+        return distKmStraight(searchLat,searchLng,r.lat,r.lng)<=maxKm*1.8;
       });
+      // Calcular distância por vias em paralelo
+      const withDist=await Promise.all(preFilt.map(async r=>{
+        if(!r.lat||!r.lng){r.km=null;return r;}
+        const d=await distKmRoad(searchLat,searchLng,r.lat,r.lng);
+        r.km=Math.round(d);
+        return r;
+      }));
+      db=withDist.filter(r=>r.km===null||r.km<=maxKm);
     }
 
-    allRaces=db.map(r=>(({
+    // Filtro local por nome — normaliza acentos (suporta araribóia, arariboia, ararib)
+    if(nameQ){
+      const norm=function(s){
+        return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      };
+      const nq=norm(nameQ);
+      db=db.filter(r=>
+        norm(r.name).includes(nq)||
+        norm(r.organizer).includes(nq)||
+        norm(r.city).includes(nq)||
+        norm(r.description).includes(nq)
+      );
+    }
+
+    allRaces=db.map(r=>({
       id:r.id,name:r.name,date:r.date,city:r.city,state:r.state,
       dists:r.distances||[],price:r.price,link:r.link,
       org:r.organizer,desc:r.description,
       km:r.km||null,featured:r.is_featured,lat:r.lat,lng:r.lng
-    })));
+    }));
 
     filteredRaces=[...allRaces];
     currentFilter='todas';
