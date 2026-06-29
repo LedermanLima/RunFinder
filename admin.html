@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>RunFinder Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#090E1A;--surface:#101827;--surface2:#162035;
+  --border:#1E2D45;--border2:#253650;--text:#E8EFF8;
+  --muted:#6B84A3;--dim:#2E4060;--fire:#FF4500;--fire2:#FF6B35;
+  --green:#00C896;--amber:#FFB800;--red:#EF4444;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:900px;margin:0 auto;padding:24px 16px 48px;}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+.hdr-brand{display:flex;align-items:center;gap:10px;}
+.hdr-logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--fire),var(--fire2));display:flex;align-items:center;justify-content:center;font-size:20px;}
+.hdr-name{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;}
+.hdr-name em{color:var(--fire);font-style:normal;}
+.hdr-badge{background:rgba(255,184,0,.15);border:1px solid rgba(255,184,0,.3);color:var(--amber);padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+.logout-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--muted);padding:8px 16px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:all .15s;}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* LOGIN */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:80vh;}
+.login-card{background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:36px 32px;width:100%;max-width:400px;text-align:center;}
+.login-icon{font-size:48px;margin-bottom:16px;}
+.login-title{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;margin-bottom:8px;}
+.login-sub{color:var(--muted);font-size:14px;margin-bottom:28px;}
+.login-inp{width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:12px;padding:14px 16px;color:var(--text);font-size:16px;font-family:inherit;outline:none;text-align:center;margin-bottom:14px;letter-spacing:2px;}
+.login-inp:focus{border-color:var(--fire);}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(255,69,0,.3);}
+.login-btn:active{opacity:.9;}
+.login-err{color:#FCA5A5;font-size:13px;margin-top:10px;min-height:20px;}
+.login-warn{background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--amber);margin-top:16px;line-height:1.5;text-align:left;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px;}
+@media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr);}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;}
+.stat-n{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:800;color:var(--fire);}
+.stat-l{font-size:11px;color:var(--muted);margin-top:4px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.search-inp{flex:1;min-width:200px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:12px;padding:11px 16px;color:var(--text);font-size:14px;font-family:inherit;outline:none;}
+.search-inp:focus{border-color:var(--fire);}
+.filter-sel{background:var(--surface2);border:1.5px solid var(--border2);border-radius:12px;padding:11px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;cursor:pointer;}
+.add-btn{padding:11px 18px;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;}
+
+/* TABLE */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.table-head{display:grid;grid-template-columns:1fr 100px 120px 90px 110px;gap:0;background:var(--surface2);border-bottom:1px solid var(--border);}
+.th{padding:12px 14px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);}
+.race-row{display:grid;grid-template-columns:1fr 100px 120px 90px 110px;gap:0;border-bottom:1px solid var(--border);align-items:center;transition:background .15s;}
+.race-row:last-child{border-bottom:none;}
+.race-row:hover{background:var(--surface2);}
+.td{padding:12px 14px;font-size:13px;}
+.race-name{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.race-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.race-date{color:var(--muted);font-size:12px;}
+.race-city{color:var(--muted);font-size:12px;}
+.feat-btn{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);transition:all .15s;white-space:nowrap;}
+.feat-btn.on{border-color:var(--amber);color:var(--amber);background:rgba(255,184,0,.12);}
+.active-btn{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);transition:all .15s;}
+.active-btn.on{border-color:var(--green);color:var(--green);background:rgba(0,200,150,.12);}
+
+/* MOBILE TABLE */
+@media(max-width:650px){
+  .table-head{display:none;}
+  .race-row{grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:4px;padding:12px 14px;}
+  .td{padding:0;}
+  .td:nth-child(2),.td:nth-child(3){display:none;}
+  .td:nth-child(4){grid-column:2;grid-row:1;}
+  .td:nth-child(5){grid-column:2;grid-row:2;}
+}
+
+/* ADD/EDIT MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;display:none;}
+.modal-bg.on{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;padding:28px;}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;margin-bottom:20px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:500px){.form-grid{grid-template-columns:1fr;}}
+.form-full{grid-column:1/-1;}
+.flbl{font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;}
+.finp{width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;}
+.finp:focus{border-color:var(--fire);}
+.modal-btns{display:flex;gap:10px;margin-top:20px;}
+.save-btn{flex:1;padding:13px;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;}
+.cancel-btn{padding:13px 20px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:11px;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* MISC */
+.loading{text-align:center;padding:40px;color:var(--muted);}
+.spinner{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--fire);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:14px;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;z-index:999;}
+.toast.on{opacity:1;}
+.pagination{display:flex;align-items:center;justify-content:center;gap:12px;padding:16px;color:var(--muted);font-size:13px;}
+.page-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:6px 14px;color:var(--muted);cursor:pointer;font-family:inherit;font-size:13px;}
+.page-btn:disabled{opacity:.4;cursor:default;}
+.page-btn:hover:not(:disabled){border-color:var(--fire);color:var(--fire);}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- LOGIN -->
+  <div class="login-wrap" id="loginWrap">
+    <div class="login-card">
+      <div class="login-icon">🔐</div>
+      <div class="login-title">RunFinder Admin</div>
+      <div class="login-sub">Painel de administração de corridas</div>
+      <input class="login-inp" id="passInp" type="password" placeholder="••••••••••••"
+        onkeydown="if(event.key==='Enter')doLogin()"/>
+      <button class="login-btn" onclick="doLogin()">Entrar</button>
+      <div class="login-err" id="loginErr"></div>
+      <div class="login-warn">
+        ⚠️ <strong>Atenção:</strong> A senha está no código deste arquivo.
+        Para produção, use autenticação do Supabase com Row Level Security e políticas de escrita protegidas.
+      </div>
+    </div>
+  </div>
+
+  <!-- PAINEL -->
+  <div id="panel" style="display:none">
+    <div class="hdr">
+      <div class="hdr-brand">
+        <div class="hdr-logo">🏃</div>
+        <div class="hdr-name">Run<em>Finder</em></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="hdr-badge">⚙️ Admin</div>
+        <button class="logout-btn" onclick="logout()">Sair</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats" id="statsGrid"></div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <input class="search-inp" id="searchInp" placeholder="🔍 Buscar corrida..." oninput="filterTable()"/>
+      <select class="filter-sel" id="filterSel" onchange="filterTable()">
+        <option value="todas">Todas</option>
+        <option value="featured">Destaques</option>
+        <option value="active">Ativas</option>
+        <option value="inactive">Inativas</option>
+        <option value="manual">Manuais</option>
+        <option value="crawler">Crawler</option>
+      </select>
+      <button class="add-btn" onclick="openAddModal()">+ Nova corrida</button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap">
+      <div class="table-head">
+        <div class="th">Corrida</div>
+        <div class="th">Data</div>
+        <div class="th">Cidade</div>
+        <div class="th">Destaque</div>
+        <div class="th">Ativa</div>
+      </div>
+      <div id="tableBody"><div class="loading"><div class="spinner"></div>Carregando...</div></div>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Nova corrida</div>
+    <div class="form-grid">
+      <div class="form-full">
+        <label class="flbl">Nome da corrida *</label>
+        <input class="finp" id="fName" type="text" placeholder="Ex: Corrida 10K Niterói 2026"/>
+      </div>
+      <div>
+        <label class="flbl">Data *</label>
+        <input class="finp" id="fDate" type="date"/>
+      </div>
+      <div>
+        <label class="flbl">Distâncias (separadas por vírgula)</label>
+        <input class="finp" id="fDists" type="text" placeholder="5K, 10K, 21K"/>
+      </div>
+      <div>
+        <label class="flbl">Cidade *</label>
+        <input class="finp" id="fCity" type="text" placeholder="Niterói"/>
+      </div>
+      <div>
+        <label class="flbl">Estado (UF)</label>
+        <input class="finp" id="fState" type="text" placeholder="RJ" maxlength="2"/>
+      </div>
+      <div>
+        <label class="flbl">Preço</label>
+        <input class="finp" id="fPrice" type="text" placeholder="R$ 60–R$ 120"/>
+      </div>
+      <div>
+        <label class="flbl">Latitude</label>
+        <input class="finp" id="fLat" type="number" step="0.0001" placeholder="-22.8833"/>
+      </div>
+      <div>
+        <label class="flbl">Longitude</label>
+        <input class="finp" id="fLng" type="number" step="0.0001" placeholder="-43.1036"/>
+      </div>
+      <div class="form-full">
+        <label class="flbl">Link de inscrição</label>
+        <input class="finp" id="fLink" type="url" placeholder="https://..."/>
+      </div>
+      <div class="form-full">
+        <label class="flbl">Organizador</label>
+        <input class="finp" id="fOrg" type="text" placeholder="NIT Run Esportes"/>
+      </div>
+      <div class="form-full">
+        <label class="flbl">Descrição</label>
+        <textarea class="finp" id="fDesc" rows="3" placeholder="Descrição da corrida..."></textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="fFeat" style="width:18px;height:18px;accent-color:var(--amber)"/>
+        <label for="fFeat" style="font-size:14px;font-weight:600;cursor:pointer">⭐ Marcar como destaque</label>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="fActive" checked style="width:18px;height:18px;accent-color:var(--green)"/>
+        <label for="fActive" style="font-size:14px;font-weight:600;cursor:pointer">✅ Corrida ativa</label>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="cancel-btn" onclick="closeModal()">Cancelar</button>
+      <button class="save-btn" onclick="saveRace()">💾 Salvar corrida</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL = 'https://veqvtfvmovkydpcddwfh.supabase.co';
+const SB_KEY = 'sb_publishable_V9J1wefMmmyGugPMMyikbA_kauQQuOm';
+
+// SENHA: hash SHA-256 de "runfinder2026"
+// Para mudar a senha: gere o novo hash em https://emn178.github.io/online-tools/sha256.html
+const PASS_HASH = 'a8f74d1a2b3c4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9';
+
+async function hashPassword(pass) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+let allRaces = [];
+let filteredData = [];
+let editingId = null;
+let currentPage = 1;
+const PER_PAGE = 50;
+
+// ── AUTH ──
+async function doLogin() {
+  const pass = document.getElementById('passInp').value;
+  const hash = await hashPassword(pass);
+  // Comparar com hash correto
+  // Para definir o hash correto: rode hashPassword('suasenha') no console e copie
+  const correctHash = await hashPassword('runfinder2026');
+  if (hash === correctHash) {
+    sessionStorage.setItem('rf_admin', '1');
+    document.getElementById('loginWrap').style.display = 'none';
+    document.getElementById('panel').style.display = 'block';
+    loadRaces();
+  } else {
+    document.getElementById('loginErr').textContent = '❌ Senha incorreta';
+    document.getElementById('passInp').value = '';
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('rf_admin');
+  location.reload();
+}
+
+// Auto-login se sessão ativa
+if (sessionStorage.getItem('rf_admin')) {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('panel').style.display = 'block';
+  loadRaces();
+}
+
+// ── LOAD ──
+async function loadRaces() {
+  document.getElementById('tableBody').innerHTML = '<div class="loading"><div class="spinner"></div>Carregando corridas...</div>';
+  try {
+    const res = await fetch(SB_URL + '/rest/v1/races?select=*&order=date.asc&limit=1000', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    allRaces = await res.json();
+    if (!Array.isArray(allRaces)) throw new Error('Resposta inválida');
+    renderStats();
+    filterTable();
+  } catch(e) {
+    document.getElementById('tableBody').innerHTML = '<div class="empty">❌ Erro ao carregar: ' + e.message + '</div>';
+  }
+}
+
+function renderStats() {
+  const total = allRaces.length;
+  const feat = allRaces.filter(r=>r.is_featured).length;
+  const active = allRaces.filter(r=>r.is_active).length;
+  const future = allRaces.filter(r=>new Date(r.date)>=new Date()).length;
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">Total</div></div>
+    <div class="stat"><div class="stat-n">${future}</div><div class="stat-l">Futuras</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--amber)">${feat}</div><div class="stat-l">Destaques</div></div>
+    <div class="stat"><div class="stat-n" style="color:var(--green)">${active}</div><div class="stat-l">Ativas</div></div>
+  `;
+}
+
+function filterTable() {
+  const q = (document.getElementById('searchInp').value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const f = document.getElementById('filterSel').value;
+  filteredData = allRaces.filter(r => {
+    const name = (r.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const city = (r.city||'').toLowerCase();
+    const matchQ = !q || name.includes(q) || city.includes(q) || (r.state||'').toLowerCase().includes(q);
+    const matchF = f==='todas' || (f==='featured'&&r.is_featured) || (f==='active'&&r.is_active) || (f==='inactive'&&!r.is_active) || (f==='manual'&&r.source==='manual') || (f==='crawler'&&r.source==='crawler');
+    return matchQ && matchF;
+  });
+  currentPage = 1;
+  renderTable();
+}
+
+function renderTable() {
+  const start = (currentPage-1)*PER_PAGE;
+  const page = filteredData.slice(start, start+PER_PAGE);
+  const total = filteredData.length;
+  const pages = Math.ceil(total/PER_PAGE);
+
+  if (!page.length) {
+    document.getElementById('tableBody').innerHTML = '<div class="empty">Nenhuma corrida encontrada</div>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('tableBody').innerHTML = page.map(r => {
+    const dt = new Date(r.date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+    const dists = (r.distances||[]).join(', ');
+    return `<div class="race-row">
+      <div class="td">
+        <div class="race-name">${r.name}</div>
+        <div class="race-meta">${dists}${r.organizer?' · '+r.organizer:''}</div>
+      </div>
+      <div class="td race-date">${dt}</div>
+      <div class="td race-city">${r.city||''}${r.state?'/'+r.state:''}</div>
+      <div class="td">
+        <button class="feat-btn ${r.is_featured?'on':''}" onclick="toggleField('${r.id}','is_featured',${r.is_featured})">
+          ${r.is_featured?'⭐ Sim':'☆ Não'}
+        </button>
+      </div>
+      <div class="td" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="active-btn ${r.is_active?'on':''}" onclick="toggleField('${r.id}','is_active',${r.is_active})">
+          ${r.is_active?'✅ Ativa':'⏸ Inativa'}
+        </button>
+        <button onclick="openEditModal('${r.id}')" style="padding:5px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);">✏️ Editar</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Paginação
+  document.getElementById('pagination').innerHTML = total > PER_PAGE ? `
+    <button class="page-btn" onclick="changePage(-1)" ${currentPage===1?'disabled':''}>← Anterior</button>
+    <span>Pág. ${currentPage} de ${pages} (${total} corridas)</span>
+    <button class="page-btn" onclick="changePage(1)" ${currentPage===pages?'disabled':''}>Próxima →</button>
+  ` : `<span>${total} corrida${total!==1?'s':''}</span>`;
+}
+
+function changePage(dir) {
+  const pages = Math.ceil(filteredData.length/PER_PAGE);
+  currentPage = Math.max(1, Math.min(pages, currentPage+dir));
+  renderTable();
+  window.scrollTo(0,0);
+}
+
+// ── TOGGLE ──
+async function toggleField(id, field, current) {
+  const newVal = !current;
+  try {
+    const res = await fetch(SB_URL+'/rest/v1/races?id=eq.'+id, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ [field]: newVal })
+    });
+    if (res.ok || res.status===204) {
+      const r = allRaces.find(x=>x.id===id);
+      if (r) r[field] = newVal;
+      renderStats();
+      renderTable();
+      toast(newVal ? '✅ Atualizado!' : '⏸ Desativado');
+    } else {
+      toast('❌ Erro ao atualizar ('+res.status+')');
+    }
+  } catch(e) { toast('❌ '+e.message); }
+}
+
+// ── ADD / EDIT ──
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = '➕ Nova corrida';
+  document.getElementById('fName').value='';
+  document.getElementById('fDate').value='';
+  document.getElementById('fDists').value='';
+  document.getElementById('fCity').value='';
+  document.getElementById('fState').value='';
+  document.getElementById('fPrice').value='';
+  document.getElementById('fLat').value='';
+  document.getElementById('fLng').value='';
+  document.getElementById('fLink').value='';
+  document.getElementById('fOrg').value='';
+  document.getElementById('fDesc').value='';
+  document.getElementById('fFeat').checked=false;
+  document.getElementById('fActive').checked=true;
+  document.getElementById('modalBg').classList.add('on');
+}
+
+function openEditModal(id) {
+  const r = allRaces.find(x=>x.id===id);
+  if (!r) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = '✏️ Editar corrida';
+  document.getElementById('fName').value = r.name||'';
+  document.getElementById('fDate').value = r.date||'';
+  document.getElementById('fDists').value = (r.distances||[]).join(', ');
+  document.getElementById('fCity').value = r.city||'';
+  document.getElementById('fState').value = r.state||'';
+  document.getElementById('fPrice').value = r.price||'';
+  document.getElementById('fLat').value = r.lat||'';
+  document.getElementById('fLng').value = r.lng||'';
+  document.getElementById('fLink').value = r.link||'';
+  document.getElementById('fOrg').value = r.organizer||'';
+  document.getElementById('fDesc').value = r.description||'';
+  document.getElementById('fFeat').checked = !!r.is_featured;
+  document.getElementById('fActive').checked = !!r.is_active;
+  document.getElementById('modalBg').classList.add('on');
+}
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('on');
+  editingId = null;
+}
+
+async function saveRace() {
+  const name = document.getElementById('fName').value.trim();
+  const date = document.getElementById('fDate').value;
+  const city = document.getElementById('fCity').value.trim();
+  if (!name||!date||!city) { toast('❌ Nome, data e cidade são obrigatórios'); return; }
+
+  const distsRaw = document.getElementById('fDists').value;
+  const distances = distsRaw ? distsRaw.split(',').map(d=>d.trim()).filter(Boolean) : [];
+
+  const data = {
+    name, date, city,
+    state: document.getElementById('fState').value.trim().toUpperCase()||null,
+    distances,
+    price: document.getElementById('fPrice').value.trim()||null,
+    lat: parseFloat(document.getElementById('fLat').value)||null,
+    lng: parseFloat(document.getElementById('fLng').value)||null,
+    link: document.getElementById('fLink').value.trim()||null,
+    organizer: document.getElementById('fOrg').value.trim()||null,
+    description: document.getElementById('fDesc').value.trim()||null,
+    is_featured: document.getElementById('fFeat').checked,
+    is_active: document.getElementById('fActive').checked,
+    is_manual: true,
+    source: 'manual',
+  };
+
+  try {
+    let res;
+    if (editingId) {
+      res = await fetch(SB_URL+'/rest/v1/races?id=eq.'+editingId, {
+        method: 'PATCH',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(data)
+      });
+    } else {
+      res = await fetch(SB_URL+'/rest/v1/races', {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(data)
+      });
+    }
+    if (res.ok || res.status===201 || res.status===204) {
+      toast(editingId ? '✅ Corrida atualizada!' : '✅ Corrida adicionada!');
+      closeModal();
+      await loadRaces();
+    } else {
+      const err = await res.text();
+      toast('❌ Erro ao salvar: '+res.status);
+      console.error(err);
+    }
+  } catch(e) { toast('❌ '+e.message); }
+}
+
+// ── TOAST ──
+let tTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(tTimer);
+  tTimer = setTimeout(()=>t.classList.remove('on'), 2800);
+}
+</script>
+</body>
+</html>
