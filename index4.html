@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#090E1A"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="RunFinder"/>
+<meta name="description" content="Encontre corridas de rua perto de voce no Brasil."/>
+<link rel="manifest" href="./manifest.json"/>
+<title>RunFinder — Corridas de rua perto de voce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet"/>
+<style>
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#090E1A;
+  --surface:#101827;
+  --surface2:#162035;
+  --border:#1E2D45;
+  --border2:#253650;
+  --text:#E8EFF8;
+  --muted:#6B84A3;
+  --dim:#2E4060;
+  --fire:#FF4500;
+  --fire2:#FF6B35;
+  --green:#00C896;
+  --purple:#8B5CF6;
+  --red:#EF4444;
+  --amber:#FFB800;
+  --blue:#3B82F6;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --nav-h:64px;
+  --hdr-h:60px;
+}
+html,body{
+  height:100%;background:var(--bg);color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;overflow:hidden;
+}
+#app{
+  display:flex;flex-direction:column;height:100%;
+  max-width:430px;margin:0 auto;position:relative;overflow:hidden;
+}
+
+/* ── HEADER ── */
+.hdr{
+  flex-shrink:0;
+  padding:calc(12px + var(--safe-t)) 18px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  height:calc(var(--hdr-h) + var(--safe-t));position:relative;z-index:10;
+}
+.hdr-brand{display:flex;align-items:center;gap:10px;cursor:pointer}
+.hdr-logo{
+  width:34px;height:34px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--fire),var(--fire2));
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.hdr-name{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.5px}
+.hdr-name em{color:var(--fire);font-style:normal}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.hdr-city{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:20px;padding:5px 11px;
+  font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;
+  max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.icon-btn{
+  width:34px;height:34px;border-radius:10px;
+  background:var(--surface2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:16px;position:relative;flex-shrink:0;
+  transition:background .15s;
+}
+.icon-btn:active{background:var(--surface)}
+.notif-dot{
+  position:absolute;top:6px;right:6px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--fire);border:1.5px solid var(--bg);
+}
+
+/* ── SCROLL ── */
+.scroll{
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-bottom:calc(var(--nav-h) + var(--safe-b) + 8px);
+  scrollbar-width:none;
+}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ── BOTTOM NAV ── */
+.nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;padding-bottom:var(--safe-b);z-index:200;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;color:var(--dim);
+  font-size:10px;font-weight:700;letter-spacing:.3px;
+  border:none;background:none;padding:9px 0 5px;
+  transition:color .15s;position:relative;font-family:inherit;
+}
+.nav-item.on{color:var(--fire)}
+.nav-item.on::after{
+  content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:28px;height:2px;border-radius:0 0 4px 4px;background:var(--fire);
+}
+.nav-icon{font-size:22px;line-height:1}
+.nav-badge{
+  position:absolute;top:5px;right:calc(50% - 20px);
+  background:var(--fire);color:#fff;font-size:9px;font-weight:800;
+  min-width:16px;height:16px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 3px;border:2px solid var(--surface);
+}
+
+/* ── PAGES ── */
+.page{display:none}.page.on{display:block}
+
+/* ════════════════════════════════
+   BUSCAR PAGE
+════════════════════════════════ */
+.s-wrap{padding:16px 16px 0}
+
+.hero{
+  background:linear-gradient(155deg,#0C1A32 0%,#111E38 55%,#0D1525 100%);
+  border:1px solid var(--border2);border-radius:22px;
+  padding:20px 20px 22px;margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,69,0,.1) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-eye{
+  font-size:11px;font-weight:700;letter-spacing:1.2px;
+  color:var(--fire);text-transform:uppercase;margin-bottom:5px;
+}
+.hero-h{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:21px;font-weight:800;line-height:1.25;margin-bottom:18px;
+}
+.hero-h span{color:var(--fire)}
+
+.flbl{font-size:10px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.inp-row{display:flex;gap:8px;margin-bottom:16px}
+.inp{
+  flex:1;background:rgba(255,255,255,.05);
+  border:1.5px solid var(--border2);border-radius:12px;
+  padding:12px 14px;color:var(--text);font-size:14px;
+  font-family:inherit;outline:none;
+  transition:border-color .2s,background .2s;
+}
+.inp:focus{border-color:var(--fire);background:rgba(255,69,0,.05)}
+.inp::placeholder{color:var(--dim)}
+.loc-btn{
+  width:46px;flex-shrink:0;
+  background:rgba(255,255,255,.05);border:1.5px solid var(--border2);
+  border-radius:12px;cursor:pointer;font-size:19px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.loc-btn:active{border-color:var(--fire);background:rgba(255,69,0,.1)}
+
+.sliders{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.s-lbl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.s-lbl-t{font-size:10px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--muted)}
+.s-val{font-size:13px;font-weight:800;color:var(--fire)}
+input[type=range]{width:100%;accent-color:var(--fire);height:3px;cursor:pointer;display:block;margin:7px 0 3px}
+.s-ends{display:flex;justify-content:space-between;font-size:10px;color:var(--dim)}
+
+.search-btn{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--fire),var(--fire2));
+  border:none;border-radius:13px;color:#fff;font-size:15px;font-weight:800;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .2s,transform .1s;
+  box-shadow:0 4px 24px rgba(255,69,0,.28);
+}
+.search-btn:active{transform:scale(.98);opacity:.9}
+.search-btn:disabled{
+  background:var(--surface2);box-shadow:none;
+  color:var(--muted);cursor:not-allowed;transform:none;
+}
+
+/* ── STRIP ── */
+.sec-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;margin-bottom:10px;
+}
+.sec-t{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700}
+.sec-lnk{font-size:12px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:inherit;padding:0}
+.strip-row{display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;scrollbar-width:none}
+.strip-row::-webkit-scrollbar{display:none}
+.mini{
+  flex-shrink:0;width:148px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:14px;cursor:pointer;
+  transition:border-color .2s,transform .15s;
+}
+.mini:active{transform:scale(.97)}
+.mini-badge{
+  display:inline-block;padding:3px 9px;border-radius:20px;
+  font-size:10px;font-weight:800;margin-bottom:8px;
+}
+.mini-title{font-size:12px;font-weight:700;line-height:1.35;margin-bottom:6px;color:var(--text)}
+.mini-meta{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── CHIPS ── */
+.chips{display:flex;gap:7px;overflow-x:auto;padding:0 16px 2px;scrollbar-width:none;margin-bottom:4px}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex-shrink:0;padding:7px 14px;
+  border-radius:20px;border:1.5px solid var(--border2);
+  background:var(--surface);color:var(--muted);
+  font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:all .15s;font-family:inherit;
+}
+.chip.on{border-color:var(--fire);color:var(--fire);background:rgba(255,69,0,.1)}
+
+/* ── RESULTS HEADER ── */
+.res-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px 8px;
+}
+.res-count{font-size:13px;color:var(--muted)}
+.res-count strong{color:var(--text)}
+.res-sort{font-size:12px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:inherit;padding:0}
+
+/* ── CARDS ── */
+.cards-wrap{padding:0 16px;display:flex;flex-direction:column;gap:12px}
+
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;overflow:hidden;
+  transition:transform .15s,border-color .2s;cursor:pointer;
+}
+.card:active{transform:scale(.99)}
+.c-stripe{height:3px}
+.c-body{padding:16px 18px 18px}
+.c-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11px}
+.c-badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.2px}
+.c-km{font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap;padding-top:3px}
+.c-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:16px;font-weight:700;line-height:1.3;margin-bottom:11px;
+}
+.c-meta{display:flex;flex-direction:column;gap:5px}
+.c-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.c-ico{font-size:13px;width:16px;text-align:center;flex-shrink:0}
+
+/* SIGNATURE: progress bar */
+.c-prog{margin:13px 0 15px}
+.c-prog-lbl{display:flex;justify-content:space-between;margin-bottom:5px;font-size:10px;color:var(--dim);font-weight:600}
+.c-prog-track{height:4px;background:var(--dim);border-radius:4px;overflow:hidden}
+.c-prog-fill{height:100%;border-radius:4px;width:0;transition:width 1.1s cubic-bezier(.4,0,.2,1)}
+
+.c-foot{display:flex;gap:8px}
+.btn-fav{
+  width:40px;height:40px;flex-shrink:0;
+  background:var(--surface2);border:1.5px solid var(--border2);
+  border-radius:11px;cursor:pointer;font-size:17px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.btn-fav.on{border-color:var(--red);background:rgba(239,68,68,.15);filter:none;}
+.btn-reg{
+  flex:1;padding:10px 14px;border-radius:11px;border:none;
+  font-size:12px;font-weight:800;font-family:inherit;
+  cursor:pointer;text-decoration:none;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  transition:opacity .15s;
+}
+.btn-reg:active{opacity:.8}
+.btn-reg.no-link{background:var(--surface2);color:var(--dim);cursor:default}
+
+/* DETAIL OVERLAY */
+.detail-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.detail-overlay.on{opacity:1;pointer-events:all}
+.detail-sheet{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:24px 24px 0 0;width:100%;max-width:430px;
+  margin:0 auto;padding:24px 20px calc(24px + var(--safe-b));
+  max-height:85vh;overflow-y:auto;
+  transform:translateY(40px);transition:transform .25s;
+  scrollbar-width:none;
+}
+.detail-overlay.on .detail-sheet{transform:translateY(0)}
+.detail-sheet::-webkit-scrollbar{display:none}
+.detail-handle{
+  width:100%;padding:12px 0;display:flex;justify-content:center;
+  cursor:pointer;margin-bottom:8px;
+}
+.detail-handle::after{
+  content:"";display:block;
+  width:36px;height:4px;border-radius:2px;
+  background:var(--border2);
+}
+.detail-dist-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.detail-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:22px;font-weight:800;line-height:1.25;margin-bottom:16px;
+}
+.detail-section{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:16px;padding:16px;margin-bottom:12px;
+}
+.detail-section h4{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.detail-info-row{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:10px}
+.detail-info-row:last-child{margin-bottom:0}
+.detail-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.detail-info-val{color:var(--text);font-weight:500}
+.detail-info-sub{color:var(--muted);font-size:12px}
+.detail-cta{
+  width:100%;padding:15px;margin-top:4px;
+  background:linear-gradient(135deg,var(--fire),var(--fire2));
+  border:none;border-radius:14px;color:#fff;font-size:15px;font-weight:800;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 20px rgba(255,69,0,.3);
+  text-decoration:none;
+}
+.detail-share{
+  width:100%;padding:12px;margin-top:10px;
+  background:var(--surface2);border:1.5px solid var(--border2);
+  border-radius:14px;color:var(--muted);font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+
+/* ════════════════════════════════
+   MAPA PAGE
+════════════════════════════════ */
+.map-wrap{
+  height:calc(100dvh - calc(var(--hdr-h) + var(--safe-t)) - calc(var(--nav-h) + var(--safe-b)));
+  position:relative;overflow:hidden;
+}
+.map-bg{
+  width:100%;height:100%;
+  background:linear-gradient(180deg,#0C1A32 0%,#0D1525 100%);
+  position:relative;
+}
+.map-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(30,45,69,.35) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(30,45,69,.35) 1px,transparent 1px);
+  background-size:36px 36px;
+}
+.map-sbar{
+  position:absolute;top:16px;left:16px;right:16px;z-index:10;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:14px;padding:11px 14px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+.map-sbar input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-size:14px;font-family:inherit;
+}
+.map-sbar input::placeholder{color:var(--dim)}
+.map-pins{position:absolute;inset:0;pointer-events:none}
+.mpin{position:absolute;font-size:22px;animation:mfloat 3s ease-in-out infinite;cursor:pointer;pointer-events:all}
+@keyframes mfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.map-content{
+  position:absolute;inset:0;display:flex;
+  align-items:center;justify-content:center;z-index:5;
+}
+.map-card{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:20px;padding:24px;margin:16px;text-align:center;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.map-icon{font-size:44px;margin-bottom:10px;display:block;animation:bounce 2s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.map-t{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:6px}
+.map-s{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:18px}
+.map-cta{
+  padding:12px 24px;background:linear-gradient(135deg,var(--fire),var(--fire2));
+  border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+}
+.map-badge{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:20px;padding:6px 16px;
+  font-size:12px;color:var(--muted);font-weight:600;
+  white-space:nowrap;z-index:10;
+}
+
+/* ════════════════════════════════
+   FAVORITOS PAGE
+════════════════════════════════ */
+.fav-wrap{padding:20px 16px 0}
+.fav-hdr{margin-bottom:18px}
+.fav-hdr h2{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800}
+.fav-hdr p{color:var(--muted);font-size:13px;margin-top:4px}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.stat-c{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:14px 10px;text-align:center;
+}
+.stat-n{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;color:var(--fire)}
+.stat-l{font-size:10px;color:var(--muted);margin-top:3px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+
+/* ════════════════════════════════
+   ALERTAS PAGE
+════════════════════════════════ */
+.alerts-wrap{padding:20px 16px 0}
+.alerts-hdr{margin-bottom:18px}
+.alerts-hdr h2{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800}
+.alerts-hdr p{color:var(--muted);font-size:13px;margin-top:4px}
+.alert-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:16px;margin-bottom:10px;
+  display:flex;align-items:center;gap:14px;
+}
+.alert-icon{
+  width:42px;height:42px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.alert-text{flex:1}
+.alert-title{font-size:14px;font-weight:700;margin-bottom:3px}
+.alert-sub{font-size:12px;color:var(--muted)}
+.alert-time{font-size:11px;color:var(--dim);margin-top:3px}
+.toggle{
+  width:44px;height:25px;border-radius:13px;background:var(--border2);
+  position:relative;cursor:pointer;transition:background .2s;
+  border:none;flex-shrink:0;
+}
+.toggle.on{background:var(--fire)}
+.toggle::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:19px;height:19px;border-radius:50%;background:#fff;
+  transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.3);
+}
+.toggle.on::after{transform:translateX(19px)}
+.new-alert-btn{
+  width:100%;padding:14px;margin-top:4px;
+  background:var(--surface);border:1.5px dashed var(--border2);
+  border-radius:16px;color:var(--muted);font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:border-color .2s,color .2s;
+}
+.new-alert-btn:active{border-color:var(--fire);color:var(--fire)}
+
+/* ════════════════════════════════
+   STATES
+════════════════════════════════ */
+.loading-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  padding:52px 24px;gap:14px;
+}
+.spinner{
+  width:36px;height:36px;
+  border:3px solid var(--border2);border-top-color:var(--fire);
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-t{font-size:14px;font-weight:600;color:var(--muted)}
+.load-s{font-size:12px;color:var(--dim);text-align:center;max-width:200px;line-height:1.5}
+.load-steps{display:flex;flex-direction:column;gap:6px;margin-top:4px;text-align:left}
+.load-step{
+  font-size:12px;color:var(--dim);
+  display:flex;align-items:center;gap:8px;
+}
+.load-step.done{color:var(--green)}
+.load-step.active{color:var(--muted)}
+
+.empty-wrap{text-align:center;padding:52px 24px}
+.empty-icon{font-size:48px;margin-bottom:14px}
+.empty-t{font-size:16px;font-weight:700;margin-bottom:8px}
+.empty-s{font-size:13px;color:var(--muted);line-height:1.6}
+
+.err-box{
+  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);
+  border-radius:12px;padding:11px 14px;margin-bottom:14px;
+  color:#FCA5A5;font-size:13px;display:none;
+}
+.err-box.on{display:block}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;
+  top:calc(var(--hdr-h) + var(--safe-t) + 10px);
+  left:50%;transform:translateX(-50%) translateY(-8px);
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:12px;padding:10px 18px;
+  font-size:13px;font-weight:600;white-space:nowrap;
+  pointer-events:none;opacity:0;transition:all .25s;z-index:999;
+  max-width:calc(100vw - 40px);text-align:center;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── INSTALL BANNER ── */
+.install-banner{
+  margin:12px 16px 0;
+  background:linear-gradient(135deg,rgba(255,69,0,.15),rgba(255,107,53,.1));
+  border:1px solid rgba(255,69,0,.3);
+  border-radius:16px;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+  animation:fadein .4s ease;display:none;
+}
+@keyframes fadein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.install-banner.on{display:flex}
+.install-txt{flex:1;font-size:13px;color:var(--muted);line-height:1.4}
+.install-txt strong{color:var(--text);display:block;margin-bottom:2px}
+.install-cta{
+  padding:8px 14px;background:linear-gradient(135deg,var(--fire),var(--fire2));
+  border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;
+  cursor:pointer;font-family:inherit;white-space:nowrap;
+}
+.install-x{
+  background:none;border:none;color:var(--dim);cursor:pointer;
+  font-size:16px;padding:0 2px;
+}
+
+/* ── SEP ── */
+.sep{height:1px;background:var(--border);margin:14px 16px}
+
+/* ── OFFLINE BANNER ── */
+.offline-banner{
+  background:rgba(255,184,0,.1);border-bottom:1px solid rgba(255,184,0,.2);
+  padding:8px 16px;font-size:12px;font-weight:600;color:var(--amber);
+  display:none;align-items:center;gap:8px;
+}
+.offline-banner.on{display:flex}
+
+.sort-bar {display:flex;gap:8px;overflow-x:auto;padding:0 16px 8px;scrollbar-width:none;margin-top:4px}
+.sort-bar::-webkit-scrollbar{display:none}
+.sort-pill {flex-shrink:0;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--surface);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit}
+.sort-pill.on {border-color:var(--fire);color:var(--fire);background:rgba(255,69,0,.1)}
+.featured-badge {display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:20px;background:rgba(255,184,0,.15);color:var(--amber);font-size:10px;font-weight:800;margin-left:6px;vertical-align:middle}
+.admin-page {padding:20px 16px 0}
+.admin-login {background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 24px;text-align:center;margin-top:20px}
+.admin-login h3 {font-size:18px;font-weight:700;margin-bottom:8px}
+.admin-login p {color:var(--muted);font-size:14px;margin-bottom:20px}
+.admin-race-card {background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.admin-race-info {flex:1;min-width:0}
+.admin-race-name {font-size:13px;font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-race-meta {font-size:11px;color:var(--muted)}
+.admin-feat-btn {padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);transition:all .15s;white-space:nowrap;flex-shrink:0}
+.admin-feat-btn.on {border-color:var(--amber);color:var(--amber);background:rgba(255,184,0,.1)}
+.admin-stats {display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.admin-search {background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;width:100%;margin-bottom:12px}
+.admin-search:focus {border-color:var(--fire)}
+
+/* ── PACE CALCULATOR ── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:600;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.modal-overlay.on{opacity:1;pointer-events:all;}
+.modal-sheet{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:24px 24px 0 0;width:100%;max-width:430px;
+  padding:0 20px calc(24px + var(--safe-b));
+  max-height:90vh;overflow-y:auto;scrollbar-width:none;
+  transform:translateY(40px);transition:transform .25s;
+}
+.modal-overlay.on .modal-sheet{transform:translateY(0);}
+.modal-sheet::-webkit-scrollbar{display:none}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:12px auto 20px;cursor:pointer;}
+.modal-title{font-family:Space Grotesk,sans-serif;font-size:20px;font-weight:800;margin-bottom:4px;}
+.modal-sub{color:var(--muted);font-size:13px;margin-bottom:20px;}
+.pace-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.pace-inp-wrap{display:flex;flex-direction:column;gap:6px;}
+.pace-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);}
+.pace-inp{
+  background:var(--surface2);border:1.5px solid var(--border2);
+  border-radius:12px;padding:12px 14px;color:var(--text);
+  font-size:16px;font-family:inherit;outline:none;text-align:center;
+  font-weight:700;
+}
+.pace-inp:focus{border-color:var(--fire);}
+.pace-result-box{
+  background:linear-gradient(135deg,rgba(255,69,0,.15),rgba(255,107,53,.05));
+  border:1px solid rgba(255,69,0,.3);border-radius:16px;
+  padding:18px;margin-bottom:12px;
+}
+.pace-result-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--border);
+}
+.pace-result-row:last-child{border-bottom:none;}
+.pace-result-lbl{font-size:13px;color:var(--muted);}
+.pace-result-val{font-size:16px;font-weight:800;color:var(--fire);}
+.pace-presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.pace-preset{
+  padding:6px 14px;border-radius:20px;
+  border:1.5px solid var(--border2);background:var(--surface2);
+  color:var(--muted);font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .15s;
+}
+.pace-preset:active{border-color:var(--fire);color:var(--fire);}
+
+/* ── COUNTDOWN ── */
+.countdown-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;
+  font-size:11px;font-weight:700;margin-top:6px;
+}
+.countdown-urgent{background:rgba(239,68,68,.15);color:#EF4444;}
+.countdown-soon{background:rgba(255,184,0,.15);color:var(--amber);}
+.countdown-normal{background:rgba(0,200,150,.15);color:var(--green);}
+
+/* ── ESTADOS ── */
+.state-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:16px;padding:14px 12px;text-align:center;
+  cursor:pointer;transition:all .2s;
+}
+.state-card:active{transform:scale(.97);}
+.state-card.has-races{border-color:var(--border2);}
+.state-card.has-races:hover{border-color:var(--fire);}
+.state-uf{font-family:Space Grotesk,sans-serif;font-size:18px;font-weight:800;color:var(--text);}
+.state-name{font-size:10px;color:var(--muted);margin-top:2px;}
+.state-count{
+  display:inline-block;margin-top:6px;
+  padding:2px 8px;border-radius:20px;
+  font-size:11px;font-weight:700;
+}
+.state-count.has{background:rgba(255,69,0,.15);color:var(--fire);}
+.state-count.empty{background:var(--surface2);color:var(--dim);}
+
+/* ── NOTIF INSCRICAO ── */
+.inscricao-banner{
+  background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);
+  border-radius:10px;padding:6px 10px;margin-top:8px;
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:700;color:var(--amber);
+}
+
+/* ── MODAL DE INSTALAÇÃO ── */
+.install-modal-bg{
+  position:fixed;inset:0;z-index:700;
+  background:rgba(0,0,0,.82);backdrop-filter:blur(6px);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.install-modal-bg.on{opacity:1;pointer-events:all;}
+.install-modal{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:28px 28px 0 0;width:100%;max-width:430px;
+  padding:0 24px calc(32px + var(--safe-b));
+  transform:translateY(60px);transition:transform .3s;
+}
+.install-modal-bg.on .install-modal{transform:translateY(0);}
+.imodal-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:14px auto 22px;cursor:pointer;}
+.imodal-icon{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,var(--fire),var(--fire2));display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 16px;box-shadow:0 8px 24px rgba(255,69,0,.35);}
+.imodal-title{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;text-align:center;margin-bottom:8px;}
+.imodal-sub{color:var(--muted);font-size:14px;text-align:center;line-height:1.5;margin-bottom:22px;}
+.imodal-steps{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+.imodal-step{display:flex;align-items:center;gap:14px;background:var(--surface2);border-radius:14px;padding:13px;}
+.imodal-step-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--fire),var(--fire2));color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.imodal-step-txt{font-size:13px;color:var(--muted);line-height:1.4;}
+.imodal-step-txt strong{color:var(--text);}
+.imodal-main-btn{width:100%;padding:15px;background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;border-radius:14px;color:#fff;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(255,69,0,.3);margin-bottom:10px;}
+.imodal-skip-btn{width:100%;padding:11px;background:none;border:none;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div class="offline-banner" id="offlineBanner">Modo offline</div>
+
+<header class="hdr">
+  <div class="hdr-brand" onclick="navTo('search')" style="cursor:pointer">
+    <div class="hdr-logo"><svg width="18" height="18" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="13" cy="4" r="1.5"/><path d="m15 8-3 3-2.5 1.5L9 17H7l1-5.5 2.5-2.5.5-3"/><path d="m9.5 11 1 3.5 2.5 2 1.5 1.5"/></svg></div>
+    <div class="hdr-name">Run<em>Finder</em></div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-city" id="hdrCity">Brasil</div>
+    <div class="icon-btn" onclick="navTo('alerts');renderAlerts()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot" id="notifDot" style="display:none"></div></div>
+  </div>
+</header>
+
+<div class="scroll" id="mainScroll">
+
+  <!-- BUSCAR -->
+  <div class="page on" id="page-search">
+    <div class="install-banner" id="installBanner">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      <div class="install-txt"><strong>Instalar RunFinder</strong>Acesso rapido pela tela inicial</div>
+      <button class="install-cta" onclick="installPWA()">Instalar</button>
+      <button class="install-x" onclick="dismissInstall()">×</button>
+    </div>
+    <div class="s-wrap">
+      <div class="hero">
+        <div class="hero-eye">BUSCA INTELIGENTE</div>
+        <div class="hero-h">Encontre sua<br/><span>próxima corrida</span></div>
+        <div class="flbl">Cidade de referencia</div>
+        <div class="inp-row">
+          <input class="inp" id="cityInp" type="text" placeholder="Ex: Niteroi, RJ" onkeydown="if(event.key===&apos;Enter&apos;)doSearch()"/>
+          <button class="loc-btn" id="locBtn" onclick="getLocation()" title="Minha localizacao"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></button>
+        </div>
+        <div class="flbl" style="margin-bottom:7px">Nome da corrida (opcional)</div>
+        <div class="inp-row" style="margin-bottom:16px">
+          <input class="inp" id="nameInp" type="text" placeholder="Ex: Maratona, Tupinamba, 10K..." onkeydown="if(event.key===&apos;Enter&apos;)doSearch()"/>
+        </div>
+        <div class="sliders">
+          <div>
+            <div class="s-lbl"><span class="s-lbl-t">Raio</span><span class="s-val" id="radVal">50km</span></div>
+            <input type="range" id="radSlider" min="10" max="300" value="50" oninput="document.getElementById('radVal').textContent=this.value+'km'"/>
+            <div class="s-ends"><span>10</span><span>300km</span></div>
+          </div>
+          <div>
+            <div class="s-lbl"><span class="s-lbl-t">Periodo</span><span class="s-val" id="monVal">3 meses</span></div>
+            <input type="range" id="monSlider" min="1" max="12" value="3" oninput="document.getElementById('monVal').textContent=this.value+(+this.value===1?' mes':' meses')"/>
+            <div class="s-ends"><span>1</span><span>12 meses</span></div>
+          </div>
+        </div>
+        <div class="err-box" id="errBox"></div>
+        <button class="search-btn" id="searchBtn" onclick="doSearch()">Buscar corridas</button>
+      </div>
+    </div>
+    <!-- AÇÕES RÁPIDAS -->
+    <div style="display:flex;gap:10px;padding:0 16px;margin-bottom:16px;">
+      <button onclick="openPaceCalc()" style="flex:1;background:var(--surface);border:1.5px solid var(--border2);border-radius:14px;padding:12px;cursor:pointer;font-family:inherit;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--fire)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span style="font-size:11px;font-weight:700;color:var(--muted)">PACE</span>
+      </button>
+      <button onclick="navTo('fav');renderFavs()" style="flex:1;background:var(--surface);border:1.5px solid var(--border2);border-radius:14px;padding:12px;cursor:pointer;font-family:inherit;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--fire)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span style="font-size:11px;font-weight:700;color:var(--muted)">FAVORITOS</span>
+      </button>
+      <button onclick="navTo('map')" style="flex:1;background:var(--surface);border:1.5px solid var(--border2);border-radius:14px;padding:12px;cursor:pointer;font-family:inherit;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--fire)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        <span style="font-size:11px;font-weight:700;color:var(--muted)">REGIÕES</span>
+      </button>
+    </div>
+    <div class="sec-row"><div class="sec-t">Em destaque</div><button class="sec-lnk" onclick="loadAll()">Ver todas</button></div>
+    <div class="strip-row" id="strip"></div>
+    <div style="height:1px;background:var(--border);margin:14px 16px 10px"></div>
+    <div class="chips" id="chips">
+      <button class="chip on" onclick="filterRaces('todas',this)">Todas</button>
+      <button class="chip" onclick="filterRaces('5K',this)">5K</button>
+      <button class="chip" onclick="filterRaces('10K',this)">10K</button>
+      <button class="chip" onclick="filterRaces('21K',this)">21K</button>
+      <button class="chip" onclick="filterRaces('42K',this)">42K</button>
+      <button class="chip" onclick="filterRaces('Trail',this)">Trail</button>
+      <button class="chip" onclick="filterRaces('Ultra',this)">Ultra</button>
+    </div>
+    <div class="sort-bar" id="sortBar" style="display:none">
+      <button class="sort-pill on" id="sp-date" onclick="sortBy('date',this)">Data ↑</button>
+      <button class="sort-pill" id="sp-prova" onclick="sortBy('prova',this)">Dist. prova ↓</button>
+      <button class="sort-pill" id="sp-preco" onclick="sortBy('preco',this)">Preço ↑</button>
+      <button class="sort-pill" id="sp-geo" onclick="sortBy('geo',this)">Próx. de mim ↑</button>
+    </div>
+    <div class="res-hdr" id="resHdr" style="display:none"><div class="res-count" id="resCount"></div></div>
+    <div id="cardsArea"></div>
+    <div class="empty-wrap" id="emptyState">
+      <div class="empty-icon"><svg width="48" height="48" fill="none" stroke="var(--dim)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+      <div class="empty-t">Encontre corridas perto de voce</div>
+      <div class="empty-s">Digite uma cidade ou use sua localizacao para comecar</div>
+    </div>
+  </div>
+
+  <!-- MAPA BRASIL -->
+  <div class="page" id="page-map">
+    <div style="padding:16px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <h2 style="font-family:Space Grotesk,sans-serif;font-size:20px;font-weight:800" id="mapTitle">Corridas por Região</h2>
+          <p style="color:var(--muted);font-size:12px;margin-top:3px" id="mapSubtitle">Toque em uma região para explorar</p>
+        </div>
+        <button id="mapBackBtn" onclick="mapDrillUp()" style="display:none;padding:8px 14px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:10px;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">← Voltar</button>
+      </div>
+      <div id="mapContainer" style="width:100%;min-height:320px;position:relative"></div>
+      <div id="mapLegend" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
+    </div>
+  </div>
+
+  <!-- FAVORITOS -->
+  <div class="page" id="page-fav">
+    <div class="fav-wrap">
+      <div class="fav-hdr"><h2>Meus Favoritos</h2><p>Corridas que você salvou</p></div>
+      <div class="admin-stats" id="favStats"></div>
+      <div id="favCards"></div>
+    </div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div class="page" id="page-alerts">
+    <div class="alerts-wrap">
+      <div class="alerts-hdr"><h2>Alertas</h2><p>Notificacoes de novas corridas</p></div>
+      <div id="alertsList"></div>
+      <button class="new-alert-btn" onclick="showToast('Em breve!')">+ Criar novo alerta</button>
+    </div>
+  </div>
+
+
+</div>
+
+<nav class="nav">
+  <button class="nav-item on" onclick="navTo('search')"><span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>Buscar</button>
+  <button class="nav-item" onclick="navTo('map')"><span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>Mapa</button>
+  <button class="nav-item" onclick="navTo('fav');renderFavs()"><span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>Favoritos<span class="nav-badge" id="favBadge" style="display:none">0</span></button>
+  <button class="nav-item" onclick="navTo('alerts');renderAlerts()"><span class="nav-icon"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>Alertas</button>
+</nav>
+</div>
+
+<!-- MODAL INSTALAÇÃO PRIMEIRO USO -->
+<div class="install-modal-bg" id="installModal">
+  <div class="install-modal">
+    <div class="imodal-handle" id="imodalHandle"></div>
+    <div class="imodal-icon"><svg width="36" height="36" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2"/><path d="m15.89 8.11-3.17 3.41L9 13l-1 5H6l1.5-6.5 2.5-2.5 1-4"/><path d="m9 11 1.5 4.5L14 18l2 2"/></svg></div>
+    <div class="imodal-title">Instale o RunFinder!</div>
+    <div class="imodal-sub">Acesse corridas de rua rapidamente<br/>direto da tela inicial do seu celular</div>
+    <div class="imodal-steps" id="imodalSteps"></div>
+    <button class="imodal-main-btn" id="imodalBtn">Instalar agora</button>
+    <button class="imodal-skip-btn" onclick="dismissInstallModal()">Agora não — lembrar em 3 dias</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- PACE CALCULATOR MODAL -->
+<div class="modal-overlay" id="paceModal" onclick="if(event.target===this)closePaceCalc()">
+  <div class="modal-sheet">
+    <div class="modal-handle" onclick="closePaceCalc()"></div>
+    <div class="modal-title">Calculadora de Pace</div>
+    <div class="modal-sub">Calcule seu ritmo e tempo de prova</div>
+    <div class="pace-presets">
+      <button class="pace-preset" onclick="setPacePreset(5)">5K</button>
+      <button class="pace-preset" onclick="setPacePreset(10)">10K</button>
+      <button class="pace-preset" onclick="setPacePreset(21.1)">Meia</button>
+      <button class="pace-preset" onclick="setPacePreset(42.2)">Maratona</button>
+      <button class="pace-preset" onclick="setPacePreset(15)">15K</button>
+    </div>
+    <div class="pace-grid">
+      <div class="pace-inp-wrap">
+        <span class="pace-lbl">Distância (km)</span>
+        <input class="pace-inp" id="paceKm" type="number" value="10" step="0.1" min="0.1" oninput="calcPace()"/>
+      </div>
+      <div class="pace-inp-wrap">
+        <span class="pace-lbl">Horas</span>
+        <input class="pace-inp" id="paceH" type="number" value="0" min="0" max="23" oninput="calcPace()"/>
+      </div>
+      <div class="pace-inp-wrap">
+        <span class="pace-lbl">Minutos</span>
+        <input class="pace-inp" id="paceM" type="number" value="50" min="0" max="59" oninput="calcPace()"/>
+      </div>
+      <div class="pace-inp-wrap">
+        <span class="pace-lbl">Segundos</span>
+        <input class="pace-inp" id="paceS" type="number" value="0" min="0" max="59" oninput="calcPace()"/>
+      </div>
+    </div>
+    <div class="pace-result-box" id="paceResult">
+      <div class="pace-result-row">
+        <span class="pace-result-lbl">Pace (min/km)</span>
+        <span class="pace-result-val" id="resPace">–</span>
+      </div>
+      <div class="pace-result-row">
+        <span class="pace-result-lbl">Velocidade média</span>
+        <span class="pace-result-val" id="resVel">–</span>
+      </div>
+      <div class="pace-result-row">
+        <span class="pace-result-lbl">Tempo total</span>
+        <span class="pace-result-val" id="resTotal">–</span>
+      </div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Com esse pace, em outras distâncias:</div>
+      <div id="paceOthers" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <button onclick="closePaceCalc()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--fire),var(--fire2,#FF6B35));border:none;border-radius:13px;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:4px;">Fechar</button>
+  </div>
+</div>
+
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-sheet" id="detailSheet">
+    <div class="detail-handle" id="detailHandle" onclick="closeDetail()" title="Fechar"></div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://veqvtfvmovkydpcddwfh.supabase.co';
+const SB_KEY = 'sb_publishable_V9J1wefMmmyGugPMMyikbA_kauQQuOm';
+
+
+const DCFG = {
+  '5K':{c:'#00C896',bg:'rgba(0,200,150,.15)'},
+  '10K':{c:'#FF4500',bg:'rgba(255,69,0,.15)'},
+  '15K':{c:'#FFB800',bg:'rgba(255,184,0,.15)'},
+  '21K':{c:'#8B5CF6',bg:'rgba(139,92,246,.15)'},
+  '25K':{c:'#3B82F6',bg:'rgba(59,130,246,.15)'},
+  '30K':{c:'#F59E0B',bg:'rgba(245,158,11,.15)'},
+  '42K':{c:'#EF4444',bg:'rgba(239,68,68,.15)'},
+  '52K':{c:'#EC4899',bg:'rgba(236,72,153,.15)'},
+};
+function DC(d){for(const[k,v]of Object.entries(DCFG)){if(d&&d.includes(k))return v;}return{c:'#6B84A3',bg:'rgba(107,132,163,.15)'};}
+function DPCT(d){const m={5:20,10:40,15:55,21:65,25:72,30:80,42:95,52:100};return m[parseInt(d)]||50;}
+function DLBL(d){return parseInt(d)>=50?'Ultra':d;}
+function distKmStraight(la1,lo1,la2,lo2){const R=6371,dL=(la2-la1)*Math.PI/180,dG=(lo2-lo1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dG/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+async function distKmRoad(la1,lo1,la2,lo2){
+  try{
+    const r=await fetch('https://router.project-osrm.org/route/v1/driving/'+lo1+','+la1+';'+lo2+','+la2+'?overview=false');
+    const d=await r.json();
+    if(d.routes&&d.routes[0])return d.routes[0].distance/1000;
+  }catch{}
+  return distKmStraight(la1,lo1,la2,lo2)*1.35;
+}
+function distKm(la1,lo1,la2,lo2){return distKmStraight(la1,lo1,la2,lo2);}
+function priceMin(p){return parseInt((p||'0').replace(/[^0-9]/,''))||0;}
+
+let allRaces=[], filteredRaces=[], favs=[], deferredPrompt=null;
+let userLat=null, userLng=null, searchLat=null, searchLng=null;
+let currentSort='date', sortDir={date:'asc',prova:'desc',preco:'asc',geo:'asc'};
+let currentFilter='todas';
+let adminLoggedIn=false;
+try{favs=JSON.parse(localStorage.getItem('rf_favs')||'[]');}catch{}
+
+// PWA
+if('serviceWorker'in navigator){
+  // Limpar todos SW antigos primeiro
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>r.unregister());
+  });
+  // Registrar novo SW com versão para forçar atualização
+  navigator.serviceWorker.register('./sw.js?v=7').then(r=>r.update()).catch(()=>{});
+}
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  // Banner inline desativado — usando modal de instalação
+});
+function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;}else showToast('Use "Adicionar a tela inicial"');document.getElementById('installBanner').classList.remove('on');}
+function dismissInstall(){document.getElementById('installBanner').classList.remove('on');localStorage.setItem('rf_install_dismissed','1');}
+window.addEventListener('online',()=>document.getElementById('offlineBanner').classList.remove('on'));
+window.addEventListener('offline',()=>document.getElementById('offlineBanner').classList.add('on'));
+
+// NAV
+function navTo(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('on'));
+  document.getElementById('page-'+name).classList.add('on');
+  const idx={search:0,map:1,fav:2,alerts:3}[name];
+  if(idx!==undefined)document.querySelectorAll('.nav-item')[idx].classList.add('on');
+  document.getElementById('mainScroll').scrollTop=0;
+  if(name==='map') initMap();
+}
+
+// GEOLOCATION
+async function getLocation(){
+  const btn=document.getElementById('locBtn');
+  btn.textContent='...';btn.disabled=true;
+  try{
+    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000}));
+    userLat=pos.coords.latitude;userLng=pos.coords.longitude;
+    const r=await fetch('https://nominatim.openstreetmap.org/reverse?lat='+userLat+'&lon='+userLng+'&format=json');
+    const d=await r.json();
+    const city=d.address?.city||d.address?.town||'';
+    const state=d.address?.state_code||'';
+    if(city){
+      const full=state?city+', '+state:city;
+      const inp=document.getElementById('cityInp');
+      inp.value=full;
+      document.getElementById('hdrCity').textContent='📍 '+city.substring(0,12);
+      showToast('Localização: '+full);
+    }
+  }catch{showToast('Não foi possível obter a localização');}
+  btn.textContent='📍';btn.disabled=false;
+}
+
+// SEARCH — sem cache de resultados
+async function doSearch(){
+  const city=document.getElementById('cityInp').value.trim();
+  const nameQ=document.getElementById('nameInp').value.trim().toLowerCase();
+  if(!city&&!nameQ){showErr('Digite uma cidade ou nome de corrida.');return;}
+  clearErr();
+
+  // Limpar resultados anteriores imediatamente
+  allRaces=[];
+  filteredRaces=[];
+
+  const radius=document.getElementById('radSlider').value;
+  const months=document.getElementById('monSlider').value;
+  const btn=document.getElementById('searchBtn');
+  btn.disabled=true;
+  btn.innerHTML='<div style="width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;flex-shrink:0"></div>Buscando...';
+
+  // Limpar resultados anteriores imediatamente
+  allRaces=[];
+  filteredRaces=[];
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('resHdr').style.display='none';
+  document.getElementById('sortBar').style.display='none';
+  document.getElementById('cardsArea').innerHTML='<div class="loading-wrap"><div class="spinner"></div><div class="load-t">Buscando corridas...</div></div>';
+
+  try{
+    const today=new Date().toISOString().split('T')[0];
+    const endDate=new Date();endDate.setMonth(endDate.getMonth()+parseInt(months));
+    const endStr=endDate.toISOString().split('T')[0];
+
+    // Geocodificar cidade se necessario
+    searchLat=userLat;searchLng=userLng;
+    if(!searchLat&&city){
+      try{
+        const geo=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(city)+'&format=json&limit=1&countrycodes=br');
+        const gd=await geo.json();
+        if(gd[0]){searchLat=parseFloat(gd[0].lat);searchLng=parseFloat(gd[0].lon);}
+      }catch{}
+    }
+    // Se busca só por nome sem cidade, desabilitar filtro de raio
+    if(nameQ && !city){searchLat=null;searchLng=null;}
+
+    // Buscar no banco — sem cache
+    // Buscar todos do período (filtro por nome é feito localmente para suportar acentos)
+    const url=SB_URL+'/rest/v1/races?select=*&is_active=eq.true&date=gte.'+today+'&date=lte.'+endStr+'&order=is_featured.desc,date.asc&limit=500';
+    const res=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    let db=await res.json();
+
+    // Garantir que é array (Supabase pode retornar erro como objeto)
+    if(!Array.isArray(db)){
+      console.error('Supabase error:', db);
+      db=[];
+    }
+
+    // Filtro por raio — usa OSRM para distância por vias reais
+    if(searchLat&&searchLng){
+      const maxKm=parseFloat(radius);
+      // Primeiro filtro rápido: linha reta * 0.6 para descartar claramente fora
+      const preFilt=db.filter(r=>{
+        if(!r.lat||!r.lng){
+          if(city){const cn=city.split(',')[0].toLowerCase().trim();return(r.city||'').toLowerCase().includes(cn);}
+          return true;
+        }
+        return distKmStraight(searchLat,searchLng,r.lat,r.lng)<=maxKm*1.8;
+      });
+      // Calcular distância por vias em paralelo
+      const withDist=await Promise.all(preFilt.map(async r=>{
+        if(!r.lat||!r.lng){r.km=null;return r;}
+        const d=await distKmRoad(searchLat,searchLng,r.lat,r.lng);
+        r.km=Math.round(d);
+        return r;
+      }));
+      db=withDist.filter(r=>r.km===null||r.km<=maxKm);
+    }
+
+    // Filtro local por nome — normaliza acentos (suporta araribóia, arariboia, ararib)
+    if(nameQ){
+      const norm=function(s){
+        return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      };
+      const nq=norm(nameQ);
+      db=db.filter(r=>
+        norm(r.name).includes(nq)||
+        norm(r.organizer).includes(nq)||
+        norm(r.city).includes(nq)||
+        norm(r.description).includes(nq)
+      );
+    }
+
+    allRaces=db.map(r=>({
+      id:r.id,name:r.name,date:r.date,city:r.city,state:r.state,
+      dists:r.distances||[],price:r.price,link:r.link,
+      org:r.organizer,desc:r.description,
+      km:r.km||null,featured:r.is_featured,lat:r.lat,lng:r.lng
+    }));
+
+    filteredRaces=[...allRaces];
+    currentFilter='todas';
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+    document.querySelector('.chip').classList.add('on');
+    applySortFilter();
+
+    if(city)document.getElementById('hdrCity').textContent='📍 '+city.split(',')[0].substring(0,12);
+
+  }catch(err){
+    console.error(err);
+    document.getElementById('cardsArea').innerHTML='';
+    document.getElementById('emptyState').style.display='';
+    showErr('Erro ao buscar. Verifique sua conexao.');
+  }
+  btn.disabled=false;
+  btn.innerHTML='Buscar corridas';
+}
+
+async function loadAll(){
+  document.getElementById('cityInp').value='';
+  document.getElementById('nameInp').value='';
+  document.getElementById('radSlider').value=300;
+  document.getElementById('radVal').textContent='300km';
+  document.getElementById('monSlider').value=6;
+  document.getElementById('monVal').textContent='6 meses';
+  await doSearch();
+}
+
+// SORT
+function sortBy(key,btn){
+  if(currentSort===key){sortDir[key]=sortDir[key]==='asc'?'desc':'asc';}
+  else{currentSort=key;}
+  document.querySelectorAll('.sort-pill').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  const arrows={date:'Data',prova:'Dist. prova',preco:'Preço',geo:'Próx. de mim'};
+  btn.innerHTML=arrows[key]+' '+(sortDir[key]==='asc'?'↑':'↓');
+  applySortFilter();
+}
+
+function applySortFilter(){
+  let races=[...filteredRaces];
+  const dir=sortDir[currentSort]==='asc'?1:-1;
+  races.sort((a,b)=>{
+    // Destaques sempre primeiro, independente da ordenação
+    if(a.featured && !b.featured) return -1;
+    if(!a.featured && b.featured) return 1;
+    // Aplicar ordenação escolhida
+    if(currentSort==='date') return dir*(new Date(a.date)-new Date(b.date));
+    if(currentSort==='prova'){
+      const da=parseInt((a.dists||['0'])[0])||0;
+      const db=parseInt((b.dists||['0'])[0])||0;
+      return dir*(da-db);
+    }
+    if(currentSort==='preco') return dir*(priceMin(a.price)-priceMin(b.price));
+    if(currentSort==='geo') return dir*((a.km!=null?a.km:9999)-(b.km!=null?b.km:9999));
+    return 0;
+  });
+  renderCards(races);
+}
+
+// FILTER
+function filterRaces(dist,el){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  currentFilter=dist;
+  if(dist==='todas')filteredRaces=[...allRaces];
+  else if(dist==='Ultra')filteredRaces=allRaces.filter(r=>(r.dists||[]).some(d=>parseInt(d)>=50));
+  else if(dist==='Trail')filteredRaces=allRaces.filter(r=>
+    (r.dists||[]).some(d=>d.toLowerCase().includes('trail')||parseInt(d)>=25&&parseInt(d)<50)||
+    (r.name||'').toLowerCase().includes('trail')
+  );
+  else filteredRaces=allRaces.filter(r=>(r.dists||[]).some(d=>d===dist));
+  applySortFilter();
+}
+
+// RENDER
+function renderCards(races){
+  const area=document.getElementById('cardsArea');
+  const hdr=document.getElementById('resHdr');
+  const empty=document.getElementById('emptyState');
+  const sb=document.getElementById('sortBar');
+  if(!races||!races.length){area.innerHTML='';hdr.style.display='none';sb.style.display='none';empty.style.display='';return;}
+  empty.style.display='none';hdr.style.display='flex';sb.style.display='flex';
+  document.getElementById('resCount').innerHTML='<strong>'+races.length+'</strong> corrida'+(races.length!==1?'s':'')+' encontrada'+(races.length!==1?'s':'');
+  area.innerHTML='<div class="cards-wrap">'+races.map((r,i)=>cardHTML(r,i)).join('')+'</div>';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.c-prog-fill').forEach(el=>{el.style.width=el.dataset.w+'%';});
+  }));
+}
+
+function cardHTML(r,i){
+  const isFav=favs.some(f=>f.name===r.name&&f.date===r.date);
+  const mainD=r.dists?.[0]||'10K';
+  const cfg=DC(mainD);const pct=DPCT(mainD);
+  const dt=new Date((r.date||'2026-12-31')+'T12:00:00');
+  const ds=dt.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  const badges=(r.dists||[mainD]).map(d=>{const c=DC(d);return'<span class="badge" style="color:'+c.c+';background:'+c.bg+'">'+DLBL(d)+'</span>';}).join('');
+  const featBadge=r.featured?'<span class="featured-badge">⭐ Destaque</span>':'';
+  const countdown=countdownBadge(r.date||'2026-12-31');
+  const days=getDaysTo(r.date||'2026-12-31');
+  const inscBanner=(days<=30&&days>=0&&r.price)?inscricaoBanner(r.price):'';
+  return'<div class="card" id="c'+i+'" onclick="openDetail('+i+')">'
+    +'<div class="c-stripe" style="background:'+cfg.c+'"></div>'
+    +'<div class="c-body">'
+    +'<div class="c-top"><div class="c-badges">'+badges+featBadge+'</div>'+(r.km!=null?'<div class="c-km">~'+r.km+'km</div>':'')+'</div>'
+    +'<div class="c-title">'+r.name+'</div>'
+    +'<div class="c-meta">'
+    +'<div class="c-row"><span class="c-ico"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>'+ds+'</div>'
+    +'<div class="c-row"><span class="c-ico"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>'+r.city+(r.state?', '+r.state:'')+'</div>'
+    +(r.price?'<div class="c-row"><span class="c-ico"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>'+r.price+'</div>':'')
+    +(r.org?'<div class="c-row"><span class="c-ico"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>'+r.org+'</div>':'')
+    +'</div>'
+    +countdown
+    +inscBanner
+    +'<div class="c-prog"><div class="c-prog-lbl"><span>Distancia principal</span><span style="color:'+cfg.c+';font-weight:800">'+DLBL(mainD)+'</span></div>'
+    +'<div class="c-prog-track"><div class="c-prog-fill" data-w="'+pct+'" style="background:'+cfg.c+'"></div></div></div>'
+    +'<div class="c-foot" onclick="event.stopPropagation()">'
+    +'<button class="btn-fav'+(isFav?' on':'')+'" id="fv'+i+'" onclick="toggleFav('+i+')">'+(isFav?'<span style="color:#EF4444;font-size:18px">❤</span>':'<span style="color:var(--dim);font-size:18px">♡</span>')+'</button>'
+    +(r.link?'<a class="btn-reg" href="'+r.link+'" target="_blank" rel="noreferrer" style="background:'+cfg.c+';color:#fff">Inscrever-se →</a>'
+      :'<button class="btn-reg no-link">Sem inscricao online</button>')
+    +'</div></div></div>';
+}
+
+
+// DETAIL — fix: overlay fecha so ao clicar fora do sheet
+function openDetail(i){
+  const r=allRaces[i];if(!r)return;
+  const mainD=r.dists?.[0]||'10K';
+  const cfg=DC(mainD);
+  const dt=new Date((r.date||'2026-12-31')+'T12:00:00');
+  const ds=dt.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const isFav=favs.some(f=>f.name===r.name&&f.date===r.date);
+  const badges=(r.dists||[mainD]).map(d=>{const c=DC(d);return'<span class="badge" style="color:'+c.c+';background:'+c.bg+'">'+DLBL(d)+'</span>';}).join('');
+  document.getElementById('detailContent').innerHTML=
+    '<div class="detail-dist-row">'+badges+'</div>'
+    +'<div class="detail-title">'+r.name+'</div>'
+    +'<div class="detail-section"><h4>Informacoes</h4>'
+    +'<div class="detail-info-row"><span class="detail-icon">📅</span><div><div class="detail-info-val">'+ds+'</div></div></div>'
+    +'<div class="detail-info-row"><span class="detail-icon">📍</span><div><div class="detail-info-val">'+r.city+(r.state?', '+r.state:'')+'</div>'+(r.km!=null?'<div class="detail-info-sub">~'+r.km+'km de distancia</div>':'')+'</div></div>'
+    +(r.price?'<div class="detail-info-row"><span class="detail-icon">💰</span><div><div class="detail-info-val">'+r.price+'</div></div></div>':'')
+    +(r.org?'<div class="detail-info-row"><span class="detail-icon">🏠</span><div><div class="detail-info-val">'+r.org+'</div></div></div>':'')
+    +'</div>'
+    +(r.desc?'<div class="detail-section"><h4>Sobre</h4><p style="font-size:14px;color:var(--muted);line-height:1.6">'+r.desc+'</p></div>':'')
+    +(r.link?'<a class="detail-cta" href="'+r.link+'" target="_blank" rel="noreferrer">🏃 Inscrever-se agora</a>'
+      :'<button class="detail-cta" style="opacity:.5;cursor:default">Inscricoes nao disponiveis</button>')
+    +'<button class="detail-share" onclick="shareRace('+i+')">📤 Compartilhar</button>'
+    +'<div style="display:flex;justify-content:center;margin-top:16px">'
+    +'<button class="btn-fav'+(isFav?' on':'')+'" style="width:auto;padding:10px 20px;font-size:14px;font-weight:700" id="detFav" onclick="toggleFavDetail('+i+')">'+(isFav?'❤ Salvo':'🤍 Salvar corrida')+'</button>'
+    +'</div>';
+  const overlay=document.getElementById('detailOverlay');
+  overlay.classList.add('on');
+}
+
+// Fechar detail somente ao clicar no overlay (fora do sheet) ou no handle
+document.getElementById('detailOverlay').addEventListener('click',function(e){
+  if(e.target===this)closeDetail();
+});
+document.getElementById('detailHandle').addEventListener('click',closeDetail);
+// Swipe down para fechar
+(function(){
+  const sheet=document.getElementById('detailSheet');
+  let sy=0,st=0;
+  sheet.addEventListener('touchstart',function(e){sy=e.touches[0].clientY;st=Date.now();},{passive:true});
+  sheet.addEventListener('touchend',function(e){
+    if(e.changedTouches[0].clientY-sy>60&&Date.now()-st<300)closeDetail();
+  },{passive:true});
+})();
+
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('on');}
+
+function toggleFavDetail(i){
+  toggleFav(i);
+  const isFav=favs.some(f=>f.name===allRaces[i]?.name&&f.date===allRaces[i]?.date);
+  const btn=document.getElementById('detFav');
+  if(btn){btn.innerHTML=isFav?'❤ Salvo':'🤍 Salvar corrida';btn.classList.toggle('on',isFav);}
+}
+
+function shareRace(i){
+  const r=allRaces[i];if(!r)return;
+  const text=r.name+'\n'+r.date+'\n'+r.city+(r.state?', '+r.state:'')+'\n\nEncontrado no RunFinder: https://ledermanlima.github.io/RunFinder/';
+  if(navigator.share)navigator.share({title:r.name,text,url:r.link||window.location.href});
+  else navigator.clipboard.writeText(text).then(()=>showToast('Copiado!'));
+}
+
+// FAVORITES
+function toggleFav(i){
+  const r=allRaces[i];if(!r)return;
+  const idx=favs.findIndex(f=>f.name===r.name&&f.date===r.date);
+  if(idx===-1){favs.push(r);showToast('Salvo nos favoritos');const b=document.getElementById('fv'+i);if(b){b.innerHTML='<span style="color:#EF4444;font-size:18px">❤</span>';b.classList.add('on');}}
+  else{favs.splice(idx,1);showToast('Removido');const b=document.getElementById('fv'+i);if(b){b.innerHTML='<span style="color:var(--dim);font-size:18px">♡</span>';b.classList.remove('on');}}
+  try{localStorage.setItem('rf_favs',JSON.stringify(favs));}catch{}
+  updateFavBadge();
+}
+function updateFavBadge(){const b=document.getElementById('favBadge');if(favs.length){b.style.display='flex';b.textContent=favs.length;}else b.style.display='none';}
+function renderFavs(){
+  const area=document.getElementById('favCards'),stats=document.getElementById('favStats');
+  updateFavBadge();
+  if(!favs.length){stats.innerHTML='';area.innerHTML='<div class="empty-wrap"><div class="empty-icon">🤍</div><div class="empty-t">Nenhuma corrida salva</div><div class="empty-s">Toque em ❤ para salvar</div></div>';return;}
+  stats.innerHTML='<div class="stat-c"><div class="stat-n">'+favs.length+'</div><div class="stat-l">Corridas</div></div>'
+    +'<div class="stat-c"><div class="stat-n">'+[...new Set(favs.map(f=>f.city))].length+'</div><div class="stat-l">Cidades</div></div>'
+    +'<div class="stat-c"><div class="stat-n">'+[...new Set(favs.flatMap(f=>f.dists||[]))].length+'</div><div class="stat-l">Distancias</div></div>';
+  const tmp=allRaces;allRaces=favs;
+  area.innerHTML='<div class="cards-wrap">'+favs.map((r,i)=>cardHTML(r,i)).join('')+'</div>';
+  allRaces=tmp;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{document.querySelectorAll('.c-prog-fill').forEach(el=>el.style.width=el.dataset.w+'%');}));
+}
+
+// ALERTS
+function renderAlerts(){
+  var items=[
+    {t:'Corridas em Niteroi',s:'Raio 30km',on:true},
+    {t:'Maratonas no Brasil',s:'42K',on:true},
+    {t:'Corridas em dezembro',s:'Sao Paulo',on:false}
+  ];
+  var html='';
+  for(var i=0;i<items.length;i++){
+    var a=items[i];
+    html+='<div class="alert-card">'
+      +'<div class="alert-icon" style="font-size:20px;width:42px;height:42px;background:var(--surface2);border-radius:12px;display:flex;align-items:center;justify-content:center">🔔</div>'
+      +'<div class="alert-text"><div class="alert-title">'+a.t+'</div><div class="alert-sub">'+a.s+'</div></div>'
+      +'<button class="toggle'+(a.on?' on':'')+'" onclick="this.classList.toggle(&quot;on&quot;)"></button>'
+      +'</div>';
+  }
+  document.getElementById('alertsList').innerHTML=html;
+}
+
+// ADMIN
+
+
+
+
+
+
+// MAP PINS
+function renderMapPins(){
+  const wrap=document.getElementById('mapPins');
+  if(!wrap)return;
+  [[12,22],[65,18],[80,55],[20,65],[50,75],[38,42],[70,80]].forEach(([l,t],i)=>{
+    const el=document.createElement('div');
+    el.className='mpin';
+    el.style=`left:${l}%;top:${t}%;animation-delay:${i*.35}s`;
+    el.textContent=['🎍','🏃','⏲','🥇','📍','🏆','🏔'][i];
+    wrap.appendChild(el);
+  });
+}
+
+// STRIP
+let stripRaces=[];
+async function renderStrip(){
+  try{
+    const today=new Date().toISOString().split('T')[0];
+    const res=await fetch(SB_URL+'/rest/v1/races?select=*&is_active=eq.true&is_featured=eq.true&date=gte.'+today+'&order=date.asc&limit=30',{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    const races=await res.json();
+    if(!Array.isArray(races)||!races.length)return;
+
+    let mapped=races.map(r=>({
+      id:r.id,name:r.name,date:r.date,city:r.city,state:r.state,
+      dists:r.distances||[],price:r.price,link:r.link,
+      org:r.organizer,desc:r.description,
+      km:null,featured:r.is_featured,lat:r.lat,lng:r.lng
+    }));
+
+    // Ordenar por proximidade se tiver localização do usuário
+    const refLat=userLat||searchLat;
+    const refLng=userLng||searchLng;
+    if(refLat&&refLng){
+      mapped=mapped.map(r=>{
+        if(r.lat&&r.lng) r.km=Math.round(distKmStraight(refLat,refLng,r.lat,r.lng));
+        return r;
+      }).sort((a,b)=>(a.km??9999)-(b.km??9999));
+    }
+
+    // Mostrar só as 8 mais próximas (ou primeiras se sem localização)
+    stripRaces=mapped.slice(0,8);
+
+    document.getElementById('strip').innerHTML=stripRaces.map((r,i)=>{
+      const d=r.dists?.[0]||'10K';const cfg=DC(d);
+      const dt=new Date(r.date+'T12:00:00');
+      const ds=dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+      return'<div class="mini" data-strip="'+i+'">'
+        +'<div class="mini-badge" style="color:'+cfg.c+';background:'+cfg.bg+'">'+DLBL(d)+'</div>'
+        +'<div class="mini-title">'+r.name+'</div>'
+        +'<div class="mini-meta">📅 '+ds+'</div>'
+        +'<div class="mini-meta">📍 '+r.city+(r.km!=null?' · ~'+r.km+'km':'')+'</div></div>';
+    }).join('');
+
+    document.getElementById('strip').querySelectorAll('.mini[data-strip]').forEach(function(el){
+      el.addEventListener('click',function(){
+        const idx=parseInt(this.dataset.strip);
+        allRaces=stripRaces;
+        openDetail(idx);
+      });
+    });
+  }catch(e){console.warn('renderStrip error:',e);}
+}
+
+// TOAST & ERROR
+let tTimer;
+function showToast(msg){const t=document.getElementById('toast');t.innerHTML=msg;t.classList.add('on');clearTimeout(tTimer);tTimer=setTimeout(()=>t.classList.remove('on'),2800);}
+function showErr(m){const b=document.getElementById('errBox');b.textContent=m;b.classList.add('on');}
+function clearErr(){document.getElementById('errBox').classList.remove('on');}
+
+// ════════════════════════════════════
+// PACE CALCULATOR
+// ════════════════════════════════════
+function openPaceCalc(){
+  document.getElementById('paceModal').classList.add('on');
+  calcPace();
+}
+function closePaceCalc(){
+  document.getElementById('paceModal').classList.remove('on');
+}
+function setPacePreset(km){
+  document.getElementById('paceKm').value=km;
+  calcPace();
+}
+function calcPace(){
+  const km=parseFloat(document.getElementById('paceKm').value)||0;
+  const h=parseInt(document.getElementById('paceH').value)||0;
+  const m=parseInt(document.getElementById('paceM').value)||0;
+  const s=parseInt(document.getElementById('paceS').value)||0;
+  const totalSec=h*3600+m*60+s;
+  if(!km||!totalSec){
+    document.getElementById('resPace').textContent='–';
+    document.getElementById('resVel').textContent='–';
+    document.getElementById('resTotal').textContent='–';
+    document.getElementById('paceOthers').innerHTML='';
+    return;
+  }
+  const paceSec=totalSec/km;
+  const paceMin=Math.floor(paceSec/60);
+  const paceSec2=Math.round(paceSec%60);
+  const vel=(km/(totalSec/3600)).toFixed(1);
+  const fmtTime=(sec)=>{
+    const hh=Math.floor(sec/3600);
+    const mm=Math.floor((sec%3600)/60);
+    const ss=Math.round(sec%60);
+    return (hh?hh+'h ':'')+(mm?mm+'min ':'')+(ss?ss+'s':'');
+  };
+  document.getElementById('resPace').textContent=paceMin+String.fromCharCode(39)+String(paceSec2).padStart(2,'0')+String.fromCharCode(34);
+  document.getElementById('resVel').textContent=vel+' km/h';
+  document.getElementById('resTotal').textContent=fmtTime(totalSec);
+  // Outras distâncias
+  const dists=[{d:5,l:'5K'},{d:10,l:'10K'},{d:15,l:'15K'},{d:21.1,l:'Meia Maratona'},{d:42.2,l:'Maratona'}];
+  document.getElementById('paceOthers').innerHTML=dists.filter(x=>Math.abs(x.d-km)>0.5).map(x=>{
+    const t=paceSec*x.d;
+    return'<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">'
+      +'<span style="color:var(--muted)">'+x.l+'</span>'
+      +'<span style="font-weight:700;color:var(--text)">'+fmtTime(t)+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+// ════════════════════════════════════
+// COUNTDOWN - dias para corrida
+// ════════════════════════════════════
+function getDaysTo(dateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  const now=new Date();
+  now.setHours(0,0,0,0);
+  return Math.ceil((d-now)/(1000*60*60*24));
+}
+function countdownBadge(dateStr){
+  const days=getDaysTo(dateStr);
+  if(days<0)return'';
+  if(days===0)return'<div class="countdown-badge countdown-urgent">🏁 Hoje!</div>';
+  if(days<=7)return'<div class="countdown-badge countdown-urgent">⚡ '+days+' dias</div>';
+  if(days<=30)return'<div class="countdown-badge countdown-soon">📅 '+days+' dias</div>';
+  return'<div class="countdown-badge countdown-normal">🗓️ '+days+' dias</div>';
+}
+function inscricaoBanner(price){
+  if(!price)return'';
+  return'<div class="inscricao-banner">🔔 Inscrições abertas · '+price+'</div>';
+}
+
+// ════════════════════════════════════
+// COMPARTILHAR — gera card para redes sociais
+// ════════════════════════════════════
+function shareRace(i){
+  const r=allRaces[i];if(!r)return;
+
+  // Tentar Web Share API primeiro (mobile)
+  const text='🏃 '+r.name
+    +'\n📅 '+new Date(r.date+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
+    +'\n📍 '+r.city+(r.state?', '+r.state:'')
+    +(r.price?'\n💰 '+r.price:'')
+    +'\n\nEncontrei no RunFinder 👉 https://ledermanlima.github.io/RunFinder/';
+
+  if(navigator.share){
+    navigator.share({
+      title:'🏃 '+r.name,
+      text:text,
+      url:r.link||'https://ledermanlima.github.io/RunFinder/'
+    }).then(()=>showToast('Compartilhado')).catch(()=>{});
+    return;
+  }
+  // Fallback: copiar texto
+  navigator.clipboard.writeText(text).then(()=>showToast('Copiado para a área de transferência'));
+}
+
+// ════════════════════════════════════
+// ESTADOS — corridas por estado
+// ════════════════════════════════════
+
+
+
+
+
+
+
+async function searchByState(uf,name){
+  // Limpar estado anterior ANTES de navegar
+  allRaces=[];
+  filteredRaces=[];
+  document.getElementById('cardsArea').innerHTML='';
+  document.getElementById('resHdr').style.display='none';
+  document.getElementById('sortBar').style.display='none';
+  document.getElementById('emptyState').style.display='';
+
+  // Navegar para busca
+  navTo('search');
+
+  // Preencher campos
+  document.getElementById('cityInp').value=name+', '+uf;
+  document.getElementById('nameInp').value='';
+  document.getElementById('radSlider').value=300;
+  document.getElementById('radVal').textContent='300km';
+  document.getElementById('monSlider').value=6;
+  document.getElementById('monVal').textContent='6 meses';
+
+  // Pequeno delay para garantir que o DOM atualizou
+  await new Promise(r=>setTimeout(r,100));
+  await doSearch();
+}
+
+// ════════════════════════════════════
+// ════════════════════════════════════
+// MAPA INTERATIVO DO BRASIL — DRILL DOWN
+// ════════════════════════════════════
+
+const REGIOES = {
+  'N':  {nome:'Norte',        ufs:['AM','PA','AC','RO','RR','AP','TO']},
+  'NE': {nome:'Nordeste',     ufs:['MA','PI','CE','RN','PB','PE','AL','SE','BA']},
+  'CO': {nome:'Centro-Oeste', ufs:['MT','MS','GO','DF']},
+  'SE': {nome:'Sudeste',      ufs:['MG','SP','RJ','ES']},
+  'S':  {nome:'Sul',          ufs:['PR','SC','RS']},
+};
+
+const ESTADOS_INFO = {
+  AC:{nome:'Acre',r:'N'},AL:{nome:'Alagoas',r:'NE'},AP:{nome:'Amapá',r:'N'},
+  AM:{nome:'Amazonas',r:'N'},BA:{nome:'Bahia',r:'NE'},CE:{nome:'Ceará',r:'NE'},
+  DF:{nome:'Distrito Federal',r:'CO'},ES:{nome:'Espírito Santo',r:'SE'},
+  GO:{nome:'Goiás',r:'CO'},MA:{nome:'Maranhão',r:'NE'},MT:{nome:'Mato Grosso',r:'CO'},
+  MS:{nome:'Mato Grosso do Sul',r:'CO'},MG:{nome:'Minas Gerais',r:'SE'},
+  PA:{nome:'Pará',r:'N'},PB:{nome:'Paraíba',r:'NE'},PR:{nome:'Paraná',r:'S'},
+  PE:{nome:'Pernambuco',r:'NE'},PI:{nome:'Piauí',r:'NE'},RJ:{nome:'Rio de Janeiro',r:'SE'},
+  RN:{nome:'Rio Grande do Norte',r:'NE'},RS:{nome:'Rio Grande do Sul',r:'S'},
+  RO:{nome:'Rondônia',r:'N'},RR:{nome:'Roraima',r:'N'},SC:{nome:'Santa Catarina',r:'S'},
+  SP:{nome:'São Paulo',r:'SE'},SE:{nome:'Sergipe',r:'NE'},TO:{nome:'Tocantins',r:'N'},
+};
+
+let mapLevel='regiao', mapRegiao=null, mapEstado=null, mapData={};
+
+function getColor(count,max){
+  if(!count)return'var(--surface2)';
+  const p=count/Math.max(max,1);
+  if(p>=0.5)return'rgba(255,69,0,0.75)';
+  if(p>=0.25)return'rgba(255,107,53,0.55)';
+  if(p>=0.1)return'rgba(255,184,0,0.45)';
+  return'rgba(0,200,150,0.35)';
+}
+function getRegEmoji(r){return{N:'🌿',NE:'☀️',CO:'🌾',SE:'🏙️',S:'❄️'}[r]||'📍';}
+
+async function loadMapData(){
+  try{
+    const today=new Date().toISOString().split('T')[0];
+    const end=new Date();end.setMonth(end.getMonth()+12);
+    const res=await fetch(SB_URL+'/rest/v1/races?select=state,city&is_active=eq.true&date=gte.'+today+'&date=lte.'+end.toISOString().split('T')[0],{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+    const races=await res.json();
+    mapData={byState:{},byCidade:{}};
+    (Array.isArray(races)?races:[]).forEach(r=>{
+      if(r.state){mapData.byState[r.state]=(mapData.byState[r.state]||0)+1;}
+      if(r.state&&r.city){
+        const k=r.state+'|'+r.city;
+        mapData.byCidade[k]=(mapData.byCidade[k]||0)+1;
+      }
+    });
+  }catch(e){console.warn('loadMapData:',e);}
+}
+
+function renderMapRegioes(){
+  mapLevel='regiao';mapRegiao=null;mapEstado=null;
+  document.getElementById('mapTitle').textContent='Corridas por Região';
+  document.getElementById('mapSubtitle').textContent='Toque em uma região para ver os estados';
+  document.getElementById('mapBackBtn').style.display='none';
+  const regCounts={};
+  Object.keys(ESTADOS_INFO).forEach(function(uf){
+    var r=ESTADOS_INFO[uf].r;
+    regCounts[r]=(regCounts[r]||0)+(mapData.byState?mapData.byState[uf]||0:0);
+  });
+  var maxC=Math.max.apply(null,Object.values(regCounts).concat([1]));
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  Object.entries(REGIOES).forEach(function(entry){
+    var k=entry[0], reg=entry[1];
+    var c=regCounts[k]||0;
+    var ufsC=reg.ufs.filter(function(uf){return (mapData.byState?mapData.byState[uf]||0:0)>0;}).length;
+    html+='<div class="map-card-item" data-action="regiao" data-key="'+k+'" style="background:'+getColor(c,maxC)+';border:1.5px solid var(--border2);border-radius:16px;padding:18px 12px;cursor:pointer;text-align:center">'
+      +'<div style="font-size:28px;margin-bottom:6px">'+getRegEmoji(k)+'</div>'
+      +'<div style="font-family:Space Grotesk,sans-serif;font-size:15px;font-weight:800">'+reg.nome+'</div>'
+      +'<div style="font-size:24px;font-weight:900;color:'+(c?'var(--fire)':'var(--dim)')+';margin:6px 0">'+c+'</div>'
+      +'<div style="font-size:11px;color:var(--muted)">corrida'+(c!==1?'s':'')+' &middot; '+ufsC+' estado'+(ufsC!==1?'s':'')+' com eventos</div>'
+      +'</div>';
+  });
+  html+='</div>';
+  document.getElementById('mapContainer').innerHTML=html;
+  bindMapCards();
+  renderLegend(maxC);
+}
+
+function mapDrillRegiao(rk){
+  mapLevel='estado';mapRegiao=rk;
+  var reg=REGIOES[rk];
+  document.getElementById('mapTitle').textContent=getRegEmoji(rk)+' '+reg.nome+' — Estados';
+  document.getElementById('mapSubtitle').textContent='Toque em um estado para ver as cidades';
+  document.getElementById('mapBackBtn').style.display='block';
+  var maxC=Math.max.apply(null,reg.ufs.map(function(uf){return mapData.byState?mapData.byState[uf]||0:0;}).concat([1]));
+  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+  reg.ufs.forEach(function(uf){
+    var c=mapData.byState?mapData.byState[uf]||0:0;
+    var est=ESTADOS_INFO[uf];
+    html+='<div class="map-card-item" data-action="estado" data-key="'+uf+'" style="background:'+getColor(c,maxC)+';border:1.5px solid var(--border2);border-radius:14px;padding:14px 8px;cursor:pointer;text-align:center">'
+      +'<div style="font-family:Space Grotesk,sans-serif;font-size:18px;font-weight:800">'+uf+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);margin:2px 0">'+est.nome+'</div>'
+      +'<div style="font-size:20px;font-weight:900;color:'+(c?'var(--fire)':'var(--dim)')+'">'+c+'</div>'
+      +'<div style="font-size:9px;color:var(--muted)">corrida'+(c!==1?'s':'')+'</div>'
+      +'</div>';
+  });
+  html+='</div>';
+  document.getElementById('mapContainer').innerHTML=html;
+  bindMapCards();
+  renderLegend(maxC);
+}
+
+function mapDrillEstado(uf){
+  mapLevel='cidade';mapEstado=uf;
+  var est=ESTADOS_INFO[uf];
+  document.getElementById('mapTitle').textContent='🏙️ '+est.nome+' — Cidades';
+  document.getElementById('mapSubtitle').textContent='Toque em uma cidade para buscar corridas';
+  document.getElementById('mapBackBtn').style.display='block';
+  var cidades={};
+  Object.entries(mapData.byCidade||{}).forEach(function(entry){
+    var parts=entry[0].split('|'), s=parts[0], c=parts[1];
+    if(s===uf)cidades[c]=(cidades[c]||0)+entry[1];
+  });
+  var entries=Object.entries(cidades).sort(function(a,b){return b[1]-a[1];});
+  var maxC=Math.max.apply(null,entries.map(function(e){return e[1];}).concat([1]));
+  if(!entries.length){
+    document.getElementById('mapContainer').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">Nenhuma corrida em '+est.nome+'<br><br><button class="map-card-item" data-action="buscar" data-uf="'+uf+'" data-name="'+est.nome+'" style="padding:10px 20px;background:var(--fire);border:none;border-radius:10px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit">Buscar corridas</button></div>';
+    bindMapCards();
+    return;
+  }
+  var html='<div style="display:flex;flex-direction:column;gap:8px">';
+  entries.forEach(function(entry){
+    var cidade=entry[0], count=entry[1];
+    var pct=Math.round((count/maxC)*100);
+    html+='<div class="map-card-item" data-action="buscar" data-uf="'+uf+'" data-name="'+cidade+'" style="background:var(--surface);border:1.5px solid var(--border2);border-radius:14px;padding:14px 16px;cursor:pointer">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<span style="font-size:14px;font-weight:700">'+cidade+'</span>'
+      +'<span style="font-size:13px;font-weight:800;color:var(--fire)">'+count+' corrida'+(count!==1?'s':'')+'</span>'
+      +'</div>'
+      +'<div style="height:4px;background:var(--dim);border-radius:4px"><div style="height:100%;width:'+pct+'%;background:var(--fire);border-radius:4px"></div></div>'
+      +'</div>';
+  });
+  html+='</div>';
+  document.getElementById('mapContainer').innerHTML=html;
+  bindMapCards();
+  renderLegend(maxC);
+}
+
+function bindMapCards(){
+  var cards=document.getElementById('mapContainer').querySelectorAll('.map-card-item');
+  cards.forEach(function(el){
+    el.addEventListener('mouseover',function(){this.style.borderColor='var(--fire)';});
+    el.addEventListener('mouseout',function(){this.style.borderColor='var(--border2)';});
+    el.addEventListener('click',function(){
+      var action=this.dataset.action;
+      if(action==='regiao') mapDrillRegiao(this.dataset.key);
+      else if(action==='estado') mapDrillEstado(this.dataset.key);
+      else if(action==='buscar') searchByState(this.dataset.uf, this.dataset.name);
+    });
+  });
+}
+
+function mapDrillUp(){
+  if(mapLevel==='cidade') mapDrillRegiao(mapRegiao);
+  else renderMapRegioes();
+}
+
+function renderLegend(max){
+  document.getElementById('mapLegend').innerHTML=
+    '<span style="font-size:11px;color:var(--dim)">Intensidade:</span>'
+    +'<span style="background:rgba(0,200,150,0.35);padding:3px 10px;border-radius:20px;font-size:11px;color:var(--text)">Poucas</span>'
+    +'<span style="background:rgba(255,184,0,0.45);padding:3px 10px;border-radius:20px;font-size:11px;color:var(--text)">Médias</span>'
+    +'<span style="background:rgba(255,69,0,0.75);padding:3px 10px;border-radius:20px;font-size:11px;color:var(--text)">Muitas</span>';
+}
+
+async function initMap(){
+  const c=document.getElementById('mapContainer');
+  if(c)c.innerHTML='<div style="text-align:center;padding:40px"><div class="spinner" style="margin:0 auto 12px"></div><div style="color:var(--muted);font-size:13px">Carregando...</div></div>';
+  await loadMapData();
+  renderMapRegioes();
+}
+
+async function searchByState(uf,name){
+  allRaces=[];filteredRaces=[];
+  document.getElementById('cardsArea').innerHTML='';
+  document.getElementById('resHdr').style.display='none';
+  document.getElementById('sortBar').style.display='none';
+  document.getElementById('emptyState').style.display='';
+  navTo('search');
+  document.getElementById('cityInp').value=name+', '+uf;
+  document.getElementById('nameInp').value='';
+  document.getElementById('radSlider').value=50;
+  document.getElementById('radVal').textContent='50km';
+  document.getElementById('monSlider').value=6;
+  document.getElementById('monVal').textContent='6 meses';
+  await new Promise(r=>setTimeout(r,150));
+  await doSearch();
+}
+
+// INIT
+// ════════════════════════════════════
+// ════════════════════════════════════
+// MODAL INSTALAÇÃO PWA
+// ════════════════════════════════════
+function isInstalled(){
+  return window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+}
+function getPlatform(){
+  const ua=navigator.userAgent.toLowerCase();
+  if(/iphone|ipad|ipod/.test(ua))return 'ios';
+  if(/android/.test(ua))return 'android';
+  return 'desktop';
+}
+function getInstallSteps(){
+  const p=getPlatform();
+  if(p==='ios')return[
+    {n:'1',t:'Toque em <strong>Compartilhar ⬆️</strong> na barra do Safari'},
+    {n:'2',t:'Role e toque em <strong>"Adicionar à Tela de Início"</strong>'},
+    {n:'3',t:'Confirme tocando em <strong>"Adicionar"</strong>'},
+  ];
+  if(p==='android')return[
+    {n:'1',t:'Toque no menu <strong>⋮</strong> do Chrome'},
+    {n:'2',t:'Toque em <strong>"Adicionar à tela inicial"</strong>'},
+    {n:'3',t:'Confirme tocando em <strong>"Adicionar"</strong>'},
+  ];
+  return[
+    {n:'1',t:'Clique no ícone <strong>⊕</strong> na barra do Chrome'},
+    {n:'2',t:'Clique em <strong>"Instalar RunFinder"</strong>'},
+    {n:'3',t:'Confirme clicando em <strong>"Instalar"</strong>'},
+  ];
+}
+function showInstallModal(){
+  if(isInstalled())return;
+  if(localStorage.getItem('rf_install_done'))return;
+  const dismissed=localStorage.getItem('rf_install_next');
+  if(dismissed&&Date.now()<parseInt(dismissed))return;
+  const steps=getInstallSteps();
+  document.getElementById('imodalSteps').innerHTML=steps.map(function(s){
+    return'<div class="imodal-step"><div class="imodal-step-num">'+s.n+'</div><div class="imodal-step-txt">'+s.t+'</div></div>';
+  }).join('');
+  const btn=document.getElementById('imodalBtn');
+  if(deferredPrompt){
+    btn.textContent='📲 Instalar agora';
+    btn.onclick=function(){
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(r){
+        if(r.outcome==='accepted'){localStorage.setItem('rf_install_done','1');dismissInstallModal();showToast('RunFinder instalado com sucesso');}
+        deferredPrompt=null;
+      });
+    };
+  } else {
+    btn.textContent='✅ Ver instruções acima';
+    btn.onclick=function(){showToast('Siga os passos acima para instalar');};
+  }
+  document.getElementById('installModal').classList.add('on');
+}
+function dismissInstallModal(){
+  document.getElementById('installModal').classList.remove('on');
+  localStorage.setItem('rf_install_next',String(Date.now()+3*24*60*60*1000));
+}
+function checkShowInstall(){
+  if(!isInstalled())setTimeout(showInstallModal,2500);
+}
+// Fechar ao clicar fora
+document.getElementById('installModal').addEventListener('click',function(e){if(e.target===this)dismissInstallModal();});
+document.getElementById('imodalHandle').addEventListener('click',dismissInstallModal);
+
+window.addEventListener('DOMContentLoaded',()=>{
+  renderStrip();
+  checkShowInstall();
+  renderMapPins();
+  updateFavBadge();
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      try{
+        userLat=pos.coords.latitude;userLng=pos.coords.longitude;
+        const r=await fetch('https://nominatim.openstreetmap.org/reverse?lat='+userLat+'&lon='+userLng+'&format=json');
+        const d=await r.json();
+        const city=d.address?.city||d.address?.town||'';
+        const state=d.address?.state_code||'';
+        if(city){
+          const full=state?city+', '+state:city;
+          const inp=document.getElementById('cityInp');
+          if(inp&&!inp.value){inp.value=full;}
+          document.getElementById('hdrCity').textContent='📍 '+city.substring(0,12);
+        }
+      }catch{}
+    },()=>{});
+  }
+});
+</script>
+</body>
+</html>
